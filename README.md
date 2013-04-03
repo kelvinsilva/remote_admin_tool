@@ -40,4 +40,4 @@ http://keyratirc.cbox.ws/
 
 Our team forum is located At:
 
-git@github.com:HFkeyrat-team/keyrat.git
+http://keyrat.boards.net/

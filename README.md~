@@ -37,3 +37,7 @@ http://www.youtube.com/watch?v=LCv2BIQpPgI
 This is our IRC. Please only use this if you need a quick chat! ALl other issues must be posted on the Issues section of our repository!
 
 http://keyratirc.cbox.ws/
+
+Our team forum is located At:
+
+git@github.com:HFkeyrat-team/keyrat.git
