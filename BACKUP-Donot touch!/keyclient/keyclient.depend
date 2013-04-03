@@ -1,0 +1,47 @@
+# depslib dependency file v1.0
+1364709595 source:c:\proj\keyclient\main.cpp
+	<windows.h>
+	<string>
+	<winsock2.h>
+	<sstream>
+	"resource.h"
+	"email.h"
+
+1364709217 c:\proj\keyclient\resource.h
+
+1364709217 source:c:\proj\keyclient\resources.rc
+	<windows.h>
+	<commctrl.h>
+	<richedit.h>
+	"resource.h"
+
+1363158477 source:c:\proj\keyclient\emailclass\keyclientclass\socketclass.cpp
+	"socketclass.h"
+
+1363159003 c:\proj\keyclient\emailclass\keyclientclass\socketclass.h
+	<windows.h>
+	<winsock2.h>
+	<string>
+	<sstream>
+	<iostream>
+
+1363156249 c:\proj\keyclient\email.h
+	"socketclass.h"
+	<string>
+	<windows.h>
+	<sstream>
+
+1363243160 c:\proj\keyclient\socketclass.h
+	<windows.h>
+	<winsock2.h>
+	<string>
+	<sstream>
+	<iostream>
+
+1363380216 source:c:\proj\keyclient\socketclass.cpp
+	"socketclass.h"
+	<windows.h>
+
+1363380216 source:c:\proj\keyclient\email.cpp
+	"email.h"
+
