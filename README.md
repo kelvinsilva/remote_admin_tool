@@ -23,6 +23,8 @@ Learn to use git at these youtube videos! I watched all of them and so should yo
 We are all new here (esp. me), if you find any errors, be sure to post it in this repository's issues section and go ahead and fix it!
 Do not be afraid to criticise as long as you don't show a bitter attitude towards another member! 
 
+
+
 http://www.youtube.com/watch?v=mYjZtU1-u9Y
 
 http://www.youtube.com/watch?v=8r_IErxmoUc
@@ -32,4 +34,6 @@ http://www.youtube.com/watch?v=STJBFXskfCc
 http://www.youtube.com/watch?v=LCv2BIQpPgI
 
 
+This is our IRC. Please only use this if you need a quick chat! ALl other issues must be posted on the Issues section of our repository!
 
+http://keyratirc.cbox.ws/
