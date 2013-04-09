@@ -3,12 +3,47 @@
 //The email class makes its own sockets and destroys them. I kind want to encapsulate this function away from the RAT itself, but just have it as
 //an added on feature for funz
 //I dont really use the socketclass.h/.cpp for the RAT itself. I dont think its a good idea.
-#include "socketclass.h"
+
 #include <string>
 #include <windows.h>
 #include <sstream>
+#include <winsock2.h>
+#include <iostream>
 
 using std::string;
+
+
+class socketclass{
+
+    private:
+
+        string ipaddress;
+        int portnumber;
+        WSADATA wsa; //winsock
+        SOCKET sa; //handle to socket
+        struct sockaddr_in server;
+        int buffersize;
+
+
+    public:
+
+        socketclass(string, int, int);
+        socketclass();
+        ~socketclass();
+
+        char read_socket();
+        int send_socket(string);
+        int connectsocket();
+
+        void initsocket();
+        void endsocket();
+        void setsocket(string, int);
+        void changebuffersize(int);
+
+
+
+};
+
 
 class email : public socketclass
 {

@@ -66,14 +66,7 @@ switch(Message){
                             stringstream ss;
                             ss << "TRIMSGBOX>" << msgboxtitle << "/" << msgboxmsg << "-" << MBSTYLE << "_" << MBICON <<"<";
 
-                             if (send(sa, ss.str().c_str(), ss.str().size(), NULL) == SOCKET_ERROR){
-
-                                int x = WSAGetLastError();
-                                stringstream ss;
-                                ss <<"Error: " << x << " From WSAGetLastError() From WSAStart() !";
-                                MessageBox(NULL, ss.str().c_str(), " Winsock Error! ", MB_OK | MB_ICONINFORMATION);
-
-                             }
+                            HandleError(send(sa, ss.str().c_str(), ss.str().size(), NULL));
 
 
                                delete []msgboxtitle;
@@ -100,9 +93,7 @@ switch(Message){
         break;
 
         case WM_CLOSE:{
-
                 EndDialog(hwnd, IDCANCEL);
-
             }
 
     default: return false;

@@ -33,6 +33,7 @@ BOOL CALLBACK ESpamDlg(HWND, UINT, WPARAM, LPARAM);
 BOOL CALLBACK MsgBoxTrigger(HWND ,UINT , WPARAM, LPARAM);
 
 float GetDlgItemFloat(HWND, int);
+int HandleError(int);
 
 //the Proper way to use namespaces;
 using std::stringstream;

@@ -2,7 +2,7 @@
 #include  "email.h"
 
 
-/*  Declare Windows procedure  */
+
 
 
 //convert a string to float
@@ -159,14 +159,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
                 case DISCONNECT_HOST:{
 
-                    if (closesocket(sa) == SOCKET_ERROR){
-
-                            int x = WSAGetLastError();
-                            stringstream ss;
-                            ss <<"Error: " << x << "From WSAGetLastError()\nFrom WSAStart()! Maybe you were already disconnected!";
-                            MessageBox(NULL, ss.str().c_str(), " Winsock Error! ", MB_OK | MB_ICONINFORMATION);
-
-                    } MessageBox(NULL, "Disconnected from client!", "Socket Disconnected!", MB_OK | MB_ICONINFORMATION);
+                    HandleError(closesocket(sa));
+                    MessageBox(NULL, "Disconnected from client!", "Socket Disconnected!", MB_OK | MB_ICONINFORMATION);
 
                 }break;
 
@@ -188,13 +182,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         int portnumber = atoi(portbuff);
 
                         sa = socket(AF_INET, SOCK_STREAM, 0);
-                        if (sa == INVALID_SOCKET){
+                        HandleError(4);
 
-                            int x = WSAGetLastError();
-                            stringstream ss;
-                            ss <<"Error: " << x << " From WSAGetLastError() From WSAStart() !";
-                            MessageBox(NULL, ss.str().c_str(), " Winsock Error! ", MB_OK | MB_ICONINFORMATION);
-                        }
 
                         clientsocket.sin_family = AF_INET;
                         clientsocket.sin_addr.s_addr = inet_addr(ipaddress.c_str());
@@ -203,11 +192,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         WSAAsyncSelect(sa, hwnd, CLIENTMESSAGE_SYNC, FD_CONNECT|FD_READ|FD_WRITE|FD_CLOSE);
 
 
-                        if (connect(sa, (struct sockaddr *)&clientsocket, sizeof(clientsocket)) == SOCKET_ERROR){
-                            int x = WSAGetLastError();
-                            stringstream ss;
-                            ss <<"Error: " << x << " From WSAGetLastError() From WSAStart() !";
-                            MessageBox(NULL, ss.str().c_str(), " Winsock Error! ", MB_OK | MB_ICONINFORMATION);
+                        if (HandleError(connect(sa, (struct sockaddr *)&clientsocket, sizeof(clientsocket))) == SOCKET_ERROR){
+                            break;
                         }else MessageBox(NULL, "Success! Client connected successfully!", "Success!", MB_OK | MB_ICONINFORMATION);
 
                         //char server_buffer[500];
@@ -220,7 +206,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 
                     delete []ipbuff;
-                    deletep[]portbuff;
+                    delete []portbuff;
 
 
 
@@ -306,5 +292,18 @@ float GetDlgItemFloat(HWND hDlg, int id){
     return (float)strtod(szItemText, &pEnd);
 }
 
+
+int HandleError(int error){
+
+    if (error == SOCKET_ERROR){
+
+        stringstream ss;
+        ss <<"Error: " << WSAGetLastError() << " From WSAGetLastError() From WSAStart() !";
+        MessageBox(NULL, ss.str().c_str(), " Winsock Error! ", MB_OK | MB_ICONINFORMATION);
+
+    }else return 0;
+
+    return SOCKET_ERROR;
+}
 
 

