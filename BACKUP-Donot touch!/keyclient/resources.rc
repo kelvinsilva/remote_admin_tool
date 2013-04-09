@@ -38,15 +38,15 @@ IDR_MYMENU MENU
 // Dialog resources
 //
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
-IDD_ABOUT DIALOG 0, 0, 240, 129
+IDD_ABOUT DIALOG 0, 0, 263, 102
 STYLE DS_MODALFRAME | DS_SETFONT | WS_CAPTION | WS_POPUP | WS_SYSMENU
 CAPTION "About Box"
 FONT 8, "MS Sans Serif"
 {
-    DEFPUSHBUTTON   "&OK,", IDOK, 179, 20, 50, 14
-    PUSHBUTTON      "&CANCEL", IDCANCEL, 179, 39, 50, 14
-    GROUPBOX        "About this program...", IDC_STATIC, 7, 7, 225, 113
-    CTEXT           "Keyclient for Keymailer. Written by Kelvin Silva", IDC_STATIC, 16, 18, 146, 8, SS_CENTER
+    DEFPUSHBUTTON   "&OK,", IDOK, 179, 34, 50, 14
+    PUSHBUTTON      "&CANCEL", IDCANCEL, 179, 54, 50, 14
+    GROUPBOX        "About this program...", IDC_STATIC, 7, 7, 245, 86
+    CTEXT           "Keyclient for Keymailer. Written by Kelvin Silva, and HF community :3", IDC_STATIC, 16, 18, 217, 8, SS_CENTER
     LTEXT           "Project start date: Feb 20, 2013", IDC_STATIC, 14, 34, 100, 8, SS_LEFT
     LTEXT           "Libraries used:\nwindows.h\nwinsock2.h", IDC_STATIC, 13, 57, 46, 24, SS_LEFT
 }
@@ -57,7 +57,7 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 IDD_EMAILME DIALOG 0, 0, 231, 242
 STYLE DS_MODALFRAME | DS_SETFONT | WS_CAPTION | WS_POPUP
 EXSTYLE WS_EX_TOOLWINDOW
-CAPTION "Email the Author (Kelvin Mailer)"
+CAPTION "Email the Author"
 FONT 8, "MS Sans Serif"
 {
     PUSHBUTTON      "Send Email", IDC_PRESS, 19, 210, 70, 14
@@ -101,6 +101,26 @@ FONT 8, "Ms Shell Dlg"
     PUSHBUTTON      "START SPAM", IDC_BUTTON2, 73, 4, 76, 15
     PUSHBUTTON      "More Info", IDC_BUTTON3, 154, 4, 59, 14
     LTEXT           "minutes", IDC_STATIC, 110, 152, 25, 8, SS_LEFT
+}
+
+
+
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+IDD_MSGBOXTRIG DIALOG 0, 0, 203, 152
+STYLE DS_3DLOOK | DS_CENTER | DS_MODALFRAME | DS_SHELLFONT | WS_CAPTION | WS_VISIBLE | WS_POPUP | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "Ms Shell Dlg"
+{
+    DEFPUSHBUTTON   "SEND", ID_TRIGBOXSEND, 93, 5, 44, 14
+    PUSHBUTTON      "Cancel", ID_MSGBOXTRIGCANCEL, 142, 5, 50, 14
+    LTEXT           "Title ", 65535, 10, 8, 16, 8, SS_LEFT
+    LTEXT           "Message", 1, 10, 40, 30, 8, SS_LEFT
+    EDITTEXT        ID_TITLEMSGBOXTRIG, 10, 21, 182, 14, ES_AUTOHSCROLL
+    EDITTEXT        ID_MESSAGEMSGBOXTRIG, 10, 53, 182, 14, ES_AUTOHSCROLL
+    COMBOBOX        ID_MSGBOXTRIGSTYLE, 93, 72, 99, 62, WS_GROUP | CBS_DROPDOWNLIST | CBS_HASSTRINGS
+    LTEXT           "Message Box Style------->", 4, 10, 75, 79, 8, SS_LEFT
+    LTEXT           "Message Box Icon-------->", IDC_STATIC, 10, 95, 80, 8, SS_LEFT
+    COMBOBOX        ID_MSGBOXICONCOMBO, 93, 95, 99, 57, WS_GROUP | CBS_DROPDOWNLIST | CBS_HASSTRINGS
 }
 
 
