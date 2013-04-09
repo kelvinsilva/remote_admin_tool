@@ -1,8 +1,0 @@
-# depslib dependency file v1.0
-1364888836 source:c:\proj\rat\kelvinsrat\main.cpp
-	<iostream>
-	<winsock2.h>
-	<windows.h>
-	<map>
-	<string>
-
