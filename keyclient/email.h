@@ -1,6 +1,8 @@
 #ifndef EMAIL_H
 #define EMAIL_H
-
+//The email class makes its own sockets and destroys them. I kind want to encapsulate this function away from the RAT itself, but just have it as
+//an added on feature for funz
+//I dont really use the socketclass.h/.cpp for the RAT itself. I dont think its a good idea.
 #include "socketclass.h"
 #include <string>
 #include <windows.h>

