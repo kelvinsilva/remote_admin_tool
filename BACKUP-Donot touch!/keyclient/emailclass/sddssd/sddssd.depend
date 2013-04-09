@@ -1,0 +1,5 @@
+# depslib dependency file v1.0
+1362977865 source:c:\proj\keyclient\emailclass\sddssd\main.c
+	<stdio.h>
+	<stdlib.h>
+
