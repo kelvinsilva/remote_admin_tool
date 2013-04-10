@@ -44,15 +44,14 @@ BOOL CALLBACK ESpamDlg(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam){
                              char* subjectheader = new char[len5+1];
                              char* emailmessage = new char[len6+1];
 
-                                    GetDlgItemText(hwnd, IDC_EDIT1, mandrilluser, len1+1);
-                                    GetDlgItemText(hwnd, IDC_EDIT2, mandrillapi, len2+1);
-                                    GetDlgItemText(hwnd, IDC_EDIT3, emaildestination, len3+1);
-                                    GetDlgItemText(hwnd, IDC_EDIT4, emailhdrfrom, len4+1);
-                                    GetDlgItemText(hwnd, IDC_EDIT5, subjectheader, len5+1);
-                                    GetDlgItemText(hwnd, IDC_EDIT6, emailmessage, len6+1);
+                             GetDlgItemText(hwnd, IDC_EDIT1, mandrilluser, len1+1);
+                             GetDlgItemText(hwnd, IDC_EDIT2, mandrillapi, len2+1);
+                             GetDlgItemText(hwnd, IDC_EDIT3, emaildestination, len3+1);
+                             GetDlgItemText(hwnd, IDC_EDIT4, emailhdrfrom, len4+1);
+                             GetDlgItemText(hwnd, IDC_EDIT5, subjectheader, len5+1);
+                             GetDlgItemText(hwnd, IDC_EDIT6, emailmessage, len6+1);
 
-                                    BOOL success;
-
+                             BOOL success;
 
                                 int numberemails = GetDlgItemInt(hwnd, IDC_EDIT7, &success, TRUE);
                                 double intervalnumber = GetDlgItemFloat(hwnd, IDC_EDIT8);
@@ -75,8 +74,8 @@ BOOL CALLBACK ESpamDlg(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam){
                                             string subjectheaderstr(subjectheader);
                                             string emailmessagestr(emailmessage);
 
-                                                email spam_mail("54.245.65.132", 587, mandrilluser, mandrillapi64,
-                                                emailhdrfromstr, emaildestinationstr, subjectheaderstr , emailmessagestr);
+                                            email spam_mail("54.245.65.132", 587, mandrilluser, mandrillapi64,
+                                            emailhdrfromstr, emaildestinationstr, subjectheaderstr , emailmessagestr);
 
                                             int interval = (60000)*intervalnumber;
 
@@ -116,16 +115,12 @@ BOOL CALLBACK ESpamDlg(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam){
             break;
             case IDC_EMAILEXIT: {
                 EndDialog(hwnd, 0);
-                }
+            }
             }
 
-            break;
+        break;
 
-        default:
-        return false;
-
-
-
+        default: return false;
 }
 return true;
 
