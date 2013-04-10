@@ -68,37 +68,33 @@ BOOL CALLBACK ESpamDlg(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam){
                                         } else {
 
 
-                                        string mandrilluser64(mandrilluser);
-                                        string mandrillapi64(mandrillapi);
-                                        string emaildestinationstr(emaildestination);
-                                        string emailhdrfromstr(emailhdrfrom);
-                                        string subjectheaderstr(subjectheader);
-                                        string emailmessagestr(emailmessage);
+                                            string mandrilluser64(mandrilluser);
+                                            string mandrillapi64(mandrillapi);
+                                            string emaildestinationstr(emaildestination);
+                                            string emailhdrfromstr(emailhdrfrom);
+                                            string subjectheaderstr(subjectheader);
+                                            string emailmessagestr(emailmessage);
 
-                                            email spam_mail("54.245.65.132", 587, mandrilluser, mandrillapi64,
+                                                email spam_mail("54.245.65.132", 587, mandrilluser, mandrillapi64,
                                                 emailhdrfromstr, emaildestinationstr, subjectheaderstr , emailmessagestr);
 
-                                        int interval = (60000)*intervalnumber;
+                                            int interval = (60000)*intervalnumber;
 
-                                        stringstream ss;
+                                            stringstream ss;
 
-                                        ss << "Email Spammer- Emails sent: 0" ;
-                                        SetWindowText(hwnd, ss.str().c_str() );
-
-                                        for (int counter = 0; counter <= numberemails; counter++ ){
-
-                                            Sleep(interval);
-                                            spam_mail.sendmail();
-                                            ss << "Email Spammer- Emails sent: " << counter;
+                                            ss << "Email Spammer- Emails sent: 0" ;
                                             SetWindowText(hwnd, ss.str().c_str() );
-                                            ss.str(std::string());
 
-                                        }
+                                            for (int counter = 0; counter <= numberemails; counter++ ){
 
-                                            //spam_mail.sendmail();
+                                                Sleep(interval);
+                                                spam_mail.sendmail();
+                                                ss << "Email Spammer- Emails sent: " << counter;
+                                                SetWindowText(hwnd, ss.str().c_str() );
+                                                ss.str(std::string());
 
-
-                                                }
+                                            }
+                                     }
 
                             delete []mandrilluser;
                             delete []mandrillapi;
