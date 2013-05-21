@@ -1,7 +1,12 @@
 keyrat
 ======
 
-Community project Rat-Like program HF
+Community project: Rat-Like program HF
+New? Getting started?
+Visit the wikipage: 
+
+https://github.com/HFkeyrat-team/keyrat/wiki/Getting-Started
+
 THere is the keyclient and keyserver
 The client is supposed to make a server exe
 Since that feature has not been implemented yet, the server.exe is already compiled for you guys to edit the code in. 

@@ -64,9 +64,16 @@ switch(Message){
                             GetDlgItemText(hwnd, ID_MESSAGEMSGBOXTRIG, msgboxmsg, lenmessage+1);
 
                             stringstream ss;
-                            ss << "TRIMSGBOX>" << msgboxtitle << "/" << msgboxmsg << "-" << MBSTYLE << "_" << MBICON <<"<";
+                            ss << msgboxtitle << "/" << msgboxmsg << "-" << MBSTYLE << "_" << MBICON;
 
-                            HandleError(send(sa, ss.str().c_str(), ss.str().size(), NULL));
+                            PKT msgpkt;
+
+                            strncpy(msgpkt.command, "TRIGMSGBOX\0", 11);
+                            memset(msgpkt.data, 0, sizeof(msgpkt.data));
+
+                            strncpy(reinterpret_cast<char *>(msgpkt.data), ss.str().c_str(), ss.str().size());
+                            int i = sizeof(msgpkt);
+                            HandleError(send(sa,(char *)&msgpkt, sizeof(msgpkt), NULL));
 
 
                                delete []msgboxtitle;

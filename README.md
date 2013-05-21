@@ -1,6 +1,8 @@
 keyrat
 ======
 
+Note: Screencapture feature added!
+
 Community project: Rat-Like program HF
 New? Getting started?
 Visit the wikipage: 

