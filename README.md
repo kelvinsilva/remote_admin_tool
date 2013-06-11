@@ -1,3 +1,8 @@
+The project is no longer in development. I want to keep my soul.
+I may restart it later on but at the moment i am busy learning NASM, and datastructures/algorithms.
+And plus I have school.
+WINAPI is a bitch but one that i Love. 
+
 About one of the worst code ive written.
 Alas it was a great learning experience.
 
