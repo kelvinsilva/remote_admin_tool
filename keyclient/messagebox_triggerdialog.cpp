@@ -36,6 +36,7 @@ switch(Message){
 
     break;
     case WM_DESTROY:
+    break;
 
     case WM_COMMAND:
         switch(LOWORD(wParam)){

