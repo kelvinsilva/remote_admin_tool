@@ -1,3 +1,6 @@
+About one of the worst code ive written.
+Alas it was a great learning experience.
+
 keyrat
 ======
 
