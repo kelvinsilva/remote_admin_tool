@@ -6,6 +6,6 @@ In main.cpp youll see comments detailing how i designed the server.
 Its a bit broken, for ex. if the client disconnects, it kills the server. Gotta be fixed. You didn't join this project for nothing right!
 Also more functionality has to be added to the server. The only function it servres is to popup message boxes remotely (which can surely scare someone!), but we must add moar!
 
-PM me on hackforums: katokato
+
 or email me: kelvinsilva747@gmail.com
 If you have any questions!
